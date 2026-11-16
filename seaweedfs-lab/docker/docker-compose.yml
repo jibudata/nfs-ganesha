@@ -1,0 +1,62 @@
+# =====================================================================
+# The containerised arm of the comparison.
+#
+# The container runs the STORAGE PLANE: master, volume server and filer.
+# The FUSE gateway and Ganesha stay on the host, exactly as in the
+# bare-metal arm, and the host's FUSE mount reaches the filer through the
+# published port below.
+#
+# That is what makes the comparison mean something: Ganesha and the FUSE
+# gateway are identical in every arm, so the only variable is the storage
+# backend.  The FUSE mount was tried inside the container first; it does
+# not propagate back to the host (the container's mount lands in another
+# peer group), and the alternative - a second Ganesha export pointing at
+# the container's mount namespace - changes two variables at once.
+#
+# The data directories are bind mounts onto the SAME NVMe device the
+# bare-metal clusters use, so the storage medium is not a variable.
+# =====================================================================
+services:
+  seaweedfs:
+    # The image is built by scripts/docker-build-image.sh, which copies the
+    # host's own binary in.  Building here would need the binary in this
+    # directory, and the point of that script is that the binary comes from
+    # the host - one version for every arm of the comparison.
+    image: seaweedfs-lab:4.54
+    pull_policy: never
+    container_name: seaweedfs-lab
+    hostname: seaweedfs-lab
+    volumes:
+      - type: bind
+        source: /home/ys1000/seaweedfs/docker-master
+        target: /data/master
+      - type: bind
+        source: /home/ys1000/seaweedfs/docker-data
+        target: /data/vol
+      - type: bind
+        source: /home/ys1000/seaweedfs/docker-ldb
+        target: /data/ldb
+      - type: bind
+        source: /home/ys1000/seaweedfs/docker-cache
+        target: /data/cache
+      - type: bind
+        source: /home/ys1000/seaweedfs/docker-log
+        target: /work/log
+    command: ["/bin/bash", "/work/entrypoint.sh"]
+    entrypoint: ["/bin/bash", "/work/entrypoint.sh"]
+    environment:
+      - SW_BIN=/usr/local/bin/weed
+    restart: unless-stopped
+    stop_grace_period: 30s
+    ports:
+      # SeaweedFS derives the gRPC port from the HTTP port: grpc = http + 10000.
+      # A client that is given the HTTP port has to be able to reach the gRPC
+      # port at the SAME offset, so the published gRPC ports follow the same
+      # rule.  Publishing only the HTTP port is what made the host-side FUSE
+      # mount dial 127.0.0.1:29344 and find nothing there.
+      - "19340:9333"    # master http
+      - "29340:19333"   # master grpc   (19340 + 10000)
+      - "19342:8081"    # volume http
+      - "29342:18081"   # volume grpc   (19342 + 10000)
+      - "19344:8888"    # filer http  <- the host-side FUSE mount talks here
+      - "29344:18888"   # filer grpc   (19344 + 10000)

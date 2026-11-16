@@ -15,11 +15,16 @@
 # =====================================================================
 set -uo pipefail
 
-# cluster: <tag> <fuse mount dir> <data dir> <mount service> <ganesha pseudo>
+# cluster: <tag> <fuse mount dir> <data dir> <mount service> <ganesha pseudo> [restart cmd]
+#
+# The last field is the command that brings the mount back.  It is a systemd
+# unit for the bare-metal clusters; the containerised arm's FUSE gateway is
+# not a unit at all, it is scripts/docker-fuse-mount.sh.
 CLUSTERS=(
   "A|/home/ys1000/seaweedfs/mnt|/home/ys1000/seaweedfs/data|seaweedfs-mount|seaweedfs"
   "B|/home/ys1000/seaweedfs-hdd/mnt|/home/ys1000/seaweedfs-hdd/data|seaweedfs-mount-b|seaweedfs-hdd"
   "A2|/home/ys1000/seaweedfs/mnt-nvme-fresh|/home/ys1000/seaweedfs/data-nvme-fresh|seaweedfs-mount-nvme-fresh|seaweedfs-nvme-fresh"
+  "DOCKER|/home/ys1000/seaweedfs/mnt-docker|/home/ys1000/seaweedfs/docker-data|-|seaweedfs-docker|bash /home/ys1000/seaweedfs/scripts/docker-fuse-mount.sh up"
 )
 
 volbytes() { find "$1" -maxdepth 3 -name '*.dat' -printf '%s\n' 2>/dev/null | awk '{s+=$1} END{printf "%d\n", s+0}'; }
@@ -27,7 +32,8 @@ is_mounted() { grep -q " $1 " /proc/mounts; }
 
 echo "############ 1) detach + restart every FUSE mount ############"
 for c in "${CLUSTERS[@]}"; do
-  IFS='|' read -r tag mnt dd svc ps <<< "$c"
+  IFS='|' read -r tag mnt dd svc ps restart_cmd <<< "$c"
+  [ -n "$restart_cmd" ] || restart_cmd="sudo systemctl restart $svc"
   echo "--- cluster $tag : $mnt ---"
   if is_mounted "$mnt"; then
     ( sudo umount -l "$mnt" >/dev/null 2>&1 ) &
@@ -41,7 +47,7 @@ for c in "${CLUSTERS[@]}"; do
       sleep 3
     fi
   fi
-  sudo systemctl restart "$svc" >/dev/null 2>&1
+  eval "$restart_cmd" >/dev/null 2>&1
   echo "    restarted $svc, waiting for the mount to come back"
   for i in $(seq 1 30); do
     sleep 1
@@ -60,7 +66,7 @@ pgrep -x ganesha.nfsd | head -1
 echo
 echo "############ 3) verify each export really writes bytes to the volume server ############"
 for c in "${CLUSTERS[@]}"; do
-  IFS='|' read -r tag mnt dd svc ps <<< "$c"
+  IFS='|' read -r tag mnt dd svc ps restart_cmd <<< "$c"
   MP="/mnt/verify-$tag-$$"
   sudo mkdir -p "$MP"
   if ! timeout 40 sudo mount -t nfs -o vers=4.1,proto=tcp,rsize=1048576,wsize=1048576 \

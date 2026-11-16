@@ -35,6 +35,7 @@ echo "=== final landing check on every export ==="
 check /seaweedfs            /home/ys1000/seaweedfs/data
 check /seaweedfs-hdd        /home/ys1000/seaweedfs-hdd/data
 check /seaweedfs-nvme-fresh /home/ys1000/seaweedfs/data-nvme-fresh
+check /seaweedfs-docker     /home/ys1000/seaweedfs/docker-data
 
 echo "=== local ext4 control export ==="
 m=/mnt/final-ext4-$$-$RANDOM

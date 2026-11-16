@@ -260,6 +260,28 @@ removed. Hand-copying files is how the tree drifted on 2026-11-16: the masters
 ran with `-vacuumIntervalSeconds=86400` while the startup script the systemd
 unit actually executes did not contain it.
 
+### The containerised arms
+
+The lab compares the same stack in three shapes: **bare metal**, **Docker**
+and **Kubernetes**. Ganesha and the FUSE gateway are identical in all three,
+so the only variable is the storage backend.
+
+```bash
+# Docker arm
+bash /home/ys1000/seaweedfs/scripts/docker-prepare-host.sh up
+bash /home/ys1000/seaweedfs/scripts/ganesha-add-export.sh \
+     /seaweedfs-docker /home/ys1000/seaweedfs/mnt-docker
+```
+
+The container runs the storage plane (master, volume server, filer); the FUSE
+gateway stays on the host and reaches the container's filer through the
+published port. The image does **not** come from a registry: it copies the
+host's own statically linked binary, so every arm runs the same SeaweedFS
+build (4.54, commit 5ef99c1d) and the comparison cannot be confused by a
+version change. `LAB-CONVENTIONS.md` §9 has the rules (R13–R18) and the three
+traps that made the first attempt look like it worked.
+
+
 > **Restarting the FUSE mount invalidates the Ganesha export.**
 > `systemctl restart seaweedfs-mount` unmounts and remounts the FUSE layer, but
 > Ganesha resolved the export's path once, at startup, and still holds a dirfd

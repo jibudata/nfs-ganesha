@@ -274,3 +274,67 @@ statement** — `command not found`, or worse, something else runs. `bash -n` do
 not catch it, because the result is still valid syntax. Put the comment above
 the command instead.
 
+A comment line that **ends** with a backslash is *not* a continuation: inside a
+comment the backslash is literal and the comment ends at the newline. Only a
+code line can continue into the next one, and the linter knows that.
+
+## 9. The containerised arms
+
+The lab compares the same NFS-Ganesha + SeaweedFS stack in three shapes:
+
+| arm | storage plane | FUSE gateway | Ganesha |
+|---|---|---|---|
+| bare metal | host systemd units | host systemd unit | host |
+| Docker | container | **host** | host |
+| Kubernetes | pods | **host** | host |
+
+Ganesha and the FUSE gateway are **identical in all three**, so the only
+variable is the storage backend. Anything that moves the gateway as well
+changes two variables at once and the comparison stops meaning anything.
+
+**R13 — Inside a container, bind the container's address, not 127.0.0.1.**
+`127.0.0.1` inside a container is the *container's* loopback. Docker's port
+proxy connects to the container's IP, so a service bound to 127.0.0.1 makes the
+published port accept the TCP connection and then **reset it** — the symptom is
+`connection reset by peer` on a port that is plainly LISTENing. Use
+`IP=$(hostname -i | awk '{print $1}')` and `-ip="$IP" -ip.bind="$IP"`.
+
+**R14 — Publish the gRPC port at the same offset as the HTTP port.**
+SeaweedFS derives gRPC from HTTP: **grpc = http + 10000**. A client given
+`127.0.0.1:19344` dials `127.0.0.1:29344`. Publish `19344:8888` *and*
+`29344:18888`, and the same for the master and the volume server.
+
+**R15 — "Is it mounted?" must check the filesystem type.**
+`is_mounted` only says "something is mounted here", and a plain directory that
+was bind-mounted onto itself is in `/proc/mounts` as **ext4**. That is how a
+script comes to believe a FUSE mount is live when it is not, and the write
+then lands in the host's own filesystem. Use `is_fuse_mounted <path> [fstype]`
+from `lib-nfslab.sh`.
+
+**R16 — The FUSE mount stays on the host.**
+A FUSE mount created inside a container does **not** propagate back to the
+host: the container's mount lands in another peer group (`shared:1944` inside,
+`shared:1` on the host) and the propagation stops there. `mount --make-shared`
+and compose's `bind.propagation: rshared` do not change that. The host then
+sees an ordinary ext4 directory where the mount should be.
+
+**R17 — `pkill` on the host reaches into containers.**
+The host's `/proc` shows container processes, so `pkill -x weed` kills the
+bare-metal clusters *and* the container's processes. Worse, SIGTERM is a
+**clean** exit, so systemd's `Restart=on-failure` does not bring them back and
+the stack stays down until it is started by hand. Kill by feature instead:
+`pids_of "weed mount"` (`lib-nfslab.sh`), which scans `/proc/<pid>/cmdline` and
+skips the caller's own ancestor chain.
+
+**R18 — The container image carries the host's own binary.**
+Do not pull a registry image: the version would move and every number would
+become meaningless. `docker/build-image.sh` copies `/usr/local/bin/weed` (a
+statically linked 4.54, commit 5ef99c1d) into the image and then checks that
+the build id inside the image is the same one.
+
+**Apply when:**
+- 任何"服务在监听但连不上"的排查:先问它绑的是哪个地址(R13),再问对端端口对不对(R14)。
+- 任何"写成功但后端没数据":先比对路径的 fstype(R15),再看 Ganesha 握着的 fd 指向哪个挂载实例。
+- 任何在宿主上杀进程的操作:先确认容器里没有同名进程(R17)。
+
+

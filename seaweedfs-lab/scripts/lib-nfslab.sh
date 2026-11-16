@@ -18,6 +18,22 @@ is_mounted() {
   awk -v p="${1:-}" '$2 == p { found = 1 } END { exit !found }' /proc/mounts 2>/dev/null
 }
 
+# Is <path> a mount point OF A GIVEN FILESYSTEM TYPE?
+#
+# is_mounted() only says "something is mounted here".  That is not enough when
+# the question is "is the FUSE mount live": a plain directory that was
+# bind-mounted onto itself (which is how the shared-mount trick is set up)
+# is ALSO in /proc/mounts, as ext4.  Checking it that way is how a script
+# comes to believe that a FUSE mount propagated out of a container when it
+# did not - and then Ganesha silently drops the export and the write lands
+# in the host's own filesystem.
+#
+#   is_fuse_mounted <path> [fstype]
+is_fuse_mounted() {
+  awk -v p="${1:-}" -v t="${2:-fuse.seaweedfs}" \
+    '$2 == p && $3 == t { found = 1 } END { exit !found }' /proc/mounts 2>/dev/null
+}
+
 # Unmount <path> without ever blocking the caller.
 #
 # A synchronous umount of a wedged NFS client sits in D state and cannot be

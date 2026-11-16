@@ -514,6 +514,77 @@ either — which is itself the S5 finding.
 - "交付副本必须与线上核对"不是口号：**逐文件比对 md5**，不要只看"这个文件在不在"。
 - 一个配置文件在同一台机器上有多个副本时，先确认哪一份是"活的"，其余全是陷阱。
 
+## S14 · The containerised arm: three bugs that all looked like "it works"
+
+**Findings.**
+
+The Docker arm was built on the same day, and every step of it was wrong in a
+way that the checks in place did not catch. All three produced the same
+superficial success and a different underlying failure.
+
+- **The FUSE mount in the container never reached the host.** The container's
+  mount landed in peer group `shared:1944`, the host's path in `shared:1` —
+  different groups, so the propagation stopped. `mount --make-shared` on the
+  host and compose's `bind.propagation: rshared` did not help.
+  **The check said it worked**, because it asked "is this path in
+  `/proc/mounts`?" and the host's own bind-mounted directory answers that with
+  an **ext4** entry. Ganesha then found an ordinary directory instead of a
+  FUSE mount, dropped the export (`resolve_posix_filesystem ... Transport
+  endpoint is not connected (107)`), and the 32 MiB probe landed in the
+  host's filesystem — `dd_rc=0`, `.dat` delta **0 MiB**.
+  ⇒ The design changed: **the container runs the storage plane only, the FUSE
+  gateway stays on the host**. Ganesha and the gateway are then identical in
+  every arm, so the storage backend is the only variable — which is what the
+  comparison is for. `is_fuse_mounted` was added to `lib-nfslab.sh` so the
+  check can no longer be fooled.
+- **The published ports reset the connection.** The container's services were
+  bound to `127.0.0.1`, which inside a container is the *container's* loopback;
+  Docker's port proxy connects to the container's IP. The port was plainly
+  LISTENing, the TCP connection was accepted, and then the first byte was
+  reset — `connection reset by peer`, not `refused`. The check only asked
+  whether the TCP connection was accepted, which the proxy does happily.
+  ⇒ The services bind the container's address, and the check now sends a real
+  HTTP request (`/` or `/healthz`; **`/status` is 404 on the filer**).
+- **The gRPC port was never published.** SeaweedFS derives gRPC from HTTP
+  (`grpc = http + 10000`), so the host-side gateway given `127.0.0.1:19344`
+  dialled `127.0.0.1:29344`, where nothing listened.
+  ⇒ The gRPC ports are published at the same offset.
+
+Two more findings came out of the same work:
+
+- **`pkill -x weed` on the host reaches into the containers.** The host's
+  `/proc` shows container processes, so the kill took down the bare-metal
+  clusters *and* the container's storage plane. SIGTERM is a **clean** exit,
+  so systemd's `Restart=on-failure` did not bring any of it back: the stack
+  was down until it was started by hand, and two of the FUSE mounts were left
+  dead in `/proc/mounts` (the ENOTCONN(107) condition this lab already
+  documents). `scripts/recover-fuse.sh` brought all three bare-metal clusters
+  back — and now covers the containerised arm as well.
+- **`weed version` writes the version line to stdout and the banner to
+  stderr.** On a terminal they interleave the way you expect; in a pipe the
+  unbuffered stderr lands first, so "the first line" is the banner on the host
+  and the version line inside the container. Comparing the first line across
+  the two compares different things — the build id is compared instead.
+
+**Done.**
+
+- `docker/`: a `Dockerfile` that copies the host's own binary, a compose file
+  for the storage plane, an entrypoint and `build-image.sh` (which verifies the
+  build id inside the image matches the host's).
+- `scripts/docker-prepare-host.sh` and `scripts/docker-fuse-mount.sh`: bring
+  the arm up, and mount/unmount the host-side FUSE gateway.
+- `scripts/ganesha-add-export.sh`: add an export and restart Ganesha in one
+  reproducible step, instead of hand-editing the config.
+- `scripts/verify-exports.sh` and `scripts/recover-fuse.sh` now cover the
+  containerised export as well.
+- New rules **R13–R18** in `LAB-CONVENTIONS.md`.
+
+**Apply when:**
+- 容器化改造里,**先把"谁是变量"钉死**:Ganesha 与 FUSE 网关在所有实验臂里保持一致。
+- 任何"检查通过但其实没生效"的场景,先问:**这个检查到底在测什么**?
+  ("路径在 /proc/mounts 里" ≠ "是 FUSE 挂载"; "TCP 能连上" ≠ "服务在应答";
+  "第一行输出" ≠ "版本行"。)
+
 ## Where the improvements landed
 
 | candidate | artefact | status |
@@ -532,6 +603,7 @@ either — which is itself the S5 finding.
 | S11 a remounted FUSE mount silently invalidates the export | R10 in the linter, `final-sus.sh` fixed, `recover-fuse.sh` documented as a procedure | done |
 | S12 the vacuum sweep was configured in the wrong place | R11 + R12 in the linter, `master.sh` and `make-cluster.sh` fixed | done |
 | S13 the delivery copy had drifted from the live host | `scripts/deploy-lab.sh` (copy + verify), `ganesha.service` refreshed from the live unit | done |
+| S14 the containerised arm: three bugs that all looked like "it works" | `docker/`, `scripts/docker-*.sh`, `scripts/ganesha-add-export.sh`, R13–R18 | done |
 | R4a non-zero landing probes | `scripts/recover-fuse.sh`, `scripts/sustained-v2.sh`, linter R4a | done |
 
 ## Numbers that had to be corrected because they were measured on a wedged mount

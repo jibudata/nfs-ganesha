@@ -107,9 +107,18 @@ echo "--- documents"
 rsync -a "$SRC/LAB-CONVENTIONS.md" "$SRC/RETRO.md" \
       "$HOST:$REMOTE_ROOT/"
 
+# ---- 2b. the container / kubernetes artefacts --------------------------
+# The docker/ and k8s/ trees hold the containerised arms of the comparison.
+for dir in docker k8s; do
+  if [ -d "$SRC/$dir" ]; then
+    echo "--- $dir"
+    rsync -a --delete "$SRC/$dir/" "$HOST:$REMOTE_ROOT/$dir/"
+  fi
+done
+
 # ---- 3. make the scripts executable ------------------------------------
 echo "--- permissions"
-ssh "$HOST" "chmod +x $REMOTE_ROOT/scripts/*.sh"
+ssh "$HOST" "chmod +x $REMOTE_ROOT/scripts/*.sh $REMOTE_ROOT/docker/*.sh 2>/dev/null; true"
 
 # ---- 4. verify: every script on the host matches this tree ------------
 echo "--- verify: every script on the host matches this tree"
@@ -144,7 +153,7 @@ done
 
 # ---- 5. the host's own linter must agree ------------------------------
 echo "--- verify: the host's linter agrees"
-ssh "$HOST" "cd $REMOTE_ROOT/scripts && bash lint-lab-script.sh *.sh" | tail -1
+ssh "$HOST" "cd $REMOTE_ROOT/scripts && bash lint-lab-script.sh *.sh ../docker/*.sh" | tail -1
 
 # ---- 6. and the running system must be safe to measure -----------------
 echo "--- verify: the running lab is not exposed to a vacuum sweep"

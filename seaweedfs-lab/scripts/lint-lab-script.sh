@@ -71,8 +71,18 @@ check_file() {
   #      while its twin sweeps every 24 hours makes the comparison a lie.
   #      This is the rule that would have caught cluster A's master.sh, which
   #      shipped without the flag and only surfaced as a latent restart bug.
+  #
+  #      "Starts a master" must not be confused with "mentions a master":
+  #      stop-all.sh, final-bench.sh and sustained-v2.sh all carry the string
+  #      "weed master" in a pattern list or a grep, and none of them starts
+  #      one.  A real master invocation is a command that also carries
+  #      -mdir=, which is what the second test keys on.
   local is_master_script=0
-  grep -qE 'exec[[:space:]].*[^a-zA-Z_-]master([[:space:]]|$)' "$f" && is_master_script=1
+  if grep -vE '^[[:space:]]*#' "$f" \
+       | grep -qE '(^|[[:space:]"/])(weed|"\$SW_BIN")"?[[:space:]]+master([[:space:]]|$)' \
+     && grep -q -- '-mdir=' "$f"; then
+    is_master_script=1
+  fi
   if [ "$is_master_script" -eq 1 ]; then
     local vac_raw vac_val=""
     vac_raw=$(grep -oE 'vacuumIntervalSeconds=[^[:space:]\\]+' "$f" | head -1 | cut -d= -f2)
@@ -125,14 +135,21 @@ check_file() {
     #          # comment
     #          b        # <- runs "b" as its own command
     #      bash -n does not catch it, because the result is still valid syntax.
+    #
+    #      A comment line that ENDS with a backslash is not a continuation:
+    #      inside a comment the backslash is literal and the comment ends at
+    #      the newline.  Only a CODE line can continue into the next one.
+    local trimmed="${line#"${line%%[![:space:]]*}"}"
     if [ "$prev_continued" -eq 1 ]; then
-      local trimmed="${line#"${line%%[![:space:]]*}"}"
       case "$trimmed" in
         '#'*) fail "R12 a comment inside a backslash-continued command truncates it (the next line becomes a separate command); move the comment above the command" "$f" "$n" ;;
       esac
     fi
     prev_continued=0
-    case "$line" in *\\) prev_continued=1 ;; esac
+    case "$trimmed" in
+      '#'*) : ;;
+      *) case "$line" in *\\) prev_continued=1 ;; esac ;;
+    esac
 
     # strip full-line comments
     local code="${line%%#*}"
