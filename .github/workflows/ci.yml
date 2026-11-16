@@ -1,0 +1,100 @@
+# Continuous integration for NFS-Ganesha.
+#
+# Two jobs:
+#   build   - configure and compile the server, so a patch that does not
+#             compile can never be merged
+#   format  - check that the lines a branch changed follow the repository's
+#             .clang-format (only the changed lines: the tree already has
+#             pre-existing violations and must not be reformatted here)
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: build
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+          fetch-depth: 0
+
+      # libntirpc is the transport layer and is a submodule. It carries a
+      # nested submodule of its own (prometheus-cpp-lite, vendored headers the
+      # monitoring code includes), so the recursion is required. libkmip is
+      # only needed for CephFS fscrypt and is deliberately left alone.
+      - name: Fetch the ntirpc submodule
+        run: git submodule update --init --recursive --depth 1 src/libntirpc
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y --no-install-recommends \
+            cmake gcc g++ make pkg-config python3 \
+            libssl-dev libkrb5-dev libnfsidmap-dev \
+            libdbus-1-dev libcap-dev libattr1-dev libacl1-dev \
+            uuid-dev libblkid-dev libaio-dev libjemalloc-dev \
+            libtirpc-dev
+
+      - name: Configure
+        run: |
+          cmake -S src -B build \
+            -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+            -DCMAKE_INSTALL_PREFIX=/usr \
+            -DUSE_FSAL_VFS=ON \
+            -DUSE_FSAL_CEPH=OFF \
+            -DUSE_FSAL_CEPH_FSCRYPT=OFF \
+            -DUSE_FSAL_GLUSTER=OFF \
+            -DUSE_FSAL_GPFS=OFF \
+            -DUSE_FSAL_KVSFS=OFF \
+            -DUSE_FSAL_LUSTRE=OFF \
+            -DUSE_FSAL_LIZARDFS=DEFAULT_OFF \
+            -DUSE_FSAL_MEM=OFF \
+            -DUSE_FSAL_NULL=OFF \
+            -DUSE_FSAL_PROXY_V3=OFF \
+            -DUSE_FSAL_PROXY_V4=OFF \
+            -DUSE_FSAL_RGW=OFF \
+            -DUSE_FSAL_SAUNAFS=OFF \
+            -DUSE_FSAL_XFS=OFF \
+            -DUSE_DBUS=OFF \
+            -DUSE_GRPC=OFF \
+            -DUSE_LTTNG=OFF \
+            -DUSE_GTEST=OFF \
+            -DUSE_MAN_PAGE=OFF \
+            -DUSE_MONITORING=ON \
+            -DUSE_GSS=ON \
+            -DUSE_NFSIDMAP=DEFAULT_ON
+
+      - name: Build
+        run: cmake --build build --parallel "$(nproc)"
+
+  format:
+    name: clang-format (changed lines)
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+          fetch-depth: 0
+
+      # .clang-format asks for clang-format >= 11; pin one version so the
+      # result does not change when the runner image does.
+      - name: Install clang-format
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y --no-install-recommends clang-format-14
+
+      - name: Check the formatting of the changed lines
+        env:
+          CLANG_FORMAT: clang-format-14
+        run: .github/scripts/check-format.sh
