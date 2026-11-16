@@ -238,11 +238,27 @@ systemctl status ganesha seaweedfs-{master,volume,filer,mount}
 systemctl restart seaweedfs-mount     # remount the FUSE layer only
 /home/ys1000/seaweedfs/scripts/status.sh          # processes, ports, FUSE params, cluster
 /home/ys1000/seaweedfs/scripts/verify-exports.sh  # prove every export really writes (real bytes -> volume .dat)
+/home/ys1000/seaweedfs/scripts/check-vacuum-state.sh  # prove no vacuum sweep can interrupt a measurement
 /home/ys1000/seaweedfs/scripts/stop-all.sh        # ordered shutdown
 /home/ys1000/seaweedfs/scripts/bench-fuse-baseline.sh   # FUSE-layer baseline
 /home/ys1000/seaweedfs/scripts/bench-nfs-probe.sh      # NFS end-to-end probe
 /home/ys1000/seaweedfs/scripts/smoke-nfs.sh             # end-to-end correctness check
 ```
+
+### Deploying this tree to the lab host
+
+```bash
+bash seaweedfs-lab/scripts/deploy-lab.sh [ys1000@192.168.3.146] [/home/ys1000/seaweedfs]
+```
+
+One command, and it verifies instead of assuming: every script on the host is
+compared byte-for-byte with the tree, the host's own linter has to agree, and
+`check-vacuum-state.sh` has to report `PASS` before the deploy is considered
+done. It also refuses to delete a script it did not write — a script that
+exists on the host but not in the tree stops the deploy instead of being
+removed. Hand-copying files is how the tree drifted on 2026-11-16: the masters
+ran with `-vacuumIntervalSeconds=86400` while the startup script the systemd
+unit actually executes did not contain it.
 
 > **Restarting the FUSE mount invalidates the Ganesha export.**
 > `systemctl restart seaweedfs-mount` unmounts and remounts the FUSE layer, but

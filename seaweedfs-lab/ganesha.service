@@ -20,6 +20,9 @@ TimeoutStopSec=30
 KillSignal=SIGTERM
 LimitNOFILE=65536
 TasksMax=infinity
+# capture a core dump if the server segfaults (see README: crash investigation)
+LimitCORE=infinity
+WorkingDirectory=/var/lib/ganesha
 
 [Install]
 WantedBy=multi-user.target

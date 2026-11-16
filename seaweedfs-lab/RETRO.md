@@ -473,6 +473,47 @@ either — which is itself the S5 finding.
 - **生成器比生成物更值得审**：生成物里的漂移会被一次次复制出去。
 - 看到"参数加了但好像没生效"，按 生成器 → 脚本 → 进程命令行 的顺序查。
 
+## S13 · The delivery copy had drifted from the live host — in both directions
+
+**Findings.**
+
+- While hunting the vacuum flag, the tree was compared with the live host file
+  by file. Two copies had gone stale:
+  - `seaweedfs-lab/ganesha.service` was **older** than the live
+    `/etc/systemd/system/ganesha.service`: the live unit carries
+    `LimitCORE=infinity` and `WorkingDirectory=/var/lib/ganesha`, the delivery
+    copy does not. Deploying the delivery copy over the live unit would have
+    silently dropped the core-dump setting.
+  - the host's `scripts/README.md` was an **older copy of the delivery README**,
+    still carrying the baseline numbers that were later corrected (the
+    "NFSv4.1 buffered 1571 MiB/s" row is a cache-acceptance number, not a
+    persistence number) and the old Prometheus URL (`127.0.0.1:32000`).
+  - the host's `scripts/ganesha.conf` was a third copy of the Ganesha config,
+    and `scripts/ganesha-seaweedfs.conf` a fourth — from the V15.12 era and
+    referenced by nothing.
+- Four copies of one config, three of them stale, is exactly the arrangement
+  that let the `master.sh` vacuum flag go missing without anyone noticing.
+
+**Done.**
+
+- The live unit is authoritative: the delivery copy was refreshed from it, and
+  the deploy now writes the tree root's `README.md`, `ganesha.conf` and
+  `ganesha.service` into the host's `scripts/`, so the host carries exactly one
+  copy of each.
+- New `scripts/deploy-lab.sh`: copies the tree and then **verifies** it — every
+  script compared byte-for-byte with md5, the host's own linter has to agree,
+  and `check-vacuum-state.sh` has to report `PASS`. It also refuses to delete
+  a script it did not write: a script on the host that the tree does not have
+  stops the deploy instead of being removed.
+- The unreferenced V15.12-era `ganesha-seaweedfs.conf` is preserved and
+  reported rather than deleted — choosing what to throw away is the operator's
+  call, not a deploy's.
+
+**Apply when:**
+
+- "交付副本必须与线上核对"不是口号：**逐文件比对 md5**，不要只看"这个文件在不在"。
+- 一个配置文件在同一台机器上有多个副本时，先确认哪一份是"活的"，其余全是陷阱。
+
 ## Where the improvements landed
 
 | candidate | artefact | status |
@@ -490,6 +531,7 @@ either — which is itself the S5 finding.
 | S10 the guardrail did not cover our own artifacts | `scripts/lib-nfslab.sh`, R3/R7 rewritten, 53 scripts lint-clean on both sides | done |
 | S11 a remounted FUSE mount silently invalidates the export | R10 in the linter, `final-sus.sh` fixed, `recover-fuse.sh` documented as a procedure | done |
 | S12 the vacuum sweep was configured in the wrong place | R11 + R12 in the linter, `master.sh` and `make-cluster.sh` fixed | done |
+| S13 the delivery copy had drifted from the live host | `scripts/deploy-lab.sh` (copy + verify), `ganesha.service` refreshed from the live unit | done |
 | R4a non-zero landing probes | `scripts/recover-fuse.sh`, `scripts/sustained-v2.sh`, linter R4a | done |
 
 ## Numbers that had to be corrected because they were measured on a wedged mount
