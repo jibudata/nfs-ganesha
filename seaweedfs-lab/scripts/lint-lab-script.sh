@@ -10,6 +10,9 @@
 set -uo pipefail
 
 RC=0
+# Directories whose master-script agreement has already been checked.  A plain
+# string, not an associative array: /bin/bash is still 3.2 on macOS.
+R11_SEEN_DIRS=""
 fail() { echo "  ERROR  $1  ($2:$3)"; RC=1; }
 warn() { echo "  WARN   $1  ($2:$3)"; }
 note() { echo "  note   $1  ($2:$3)"; }
@@ -58,9 +61,79 @@ check_file() {
     fail "R10 restarting a FUSE mount invalidates the Ganesha export (the server keeps a dirfd to the old mount and the writes are silently lost); restart ganesha as well, or mark the file 'r10-exempt' with the reason" "$f" 0
   fi
 
+  # R11 is a whole-file property: a master startup script must set the vacuum
+  #      sweep interval high enough to stay out of a measurement window.  The
+  #      sweep rewrites whole volumes and interrupts the in-flight chunk upload
+  #      ("multipart: NextPart: unexpected EOF", HTTP 400), which wedges the
+  #      FUSE mount, then the Ganesha export, then the NFS client.
+  #      The value must be >= 86400 s and every master script in the same
+  #      directory must agree on it: a cluster that sweeps every 14 minutes
+  #      while its twin sweeps every 24 hours makes the comparison a lie.
+  #      This is the rule that would have caught cluster A's master.sh, which
+  #      shipped without the flag and only surfaced as a latent restart bug.
+  local is_master_script=0
+  grep -qE 'exec[[:space:]].*[^a-zA-Z_-]master([[:space:]]|$)' "$f" && is_master_script=1
+  if [ "$is_master_script" -eq 1 ]; then
+    local vac_raw vac_val=""
+    vac_raw=$(grep -oE 'vacuumIntervalSeconds=[^[:space:]\\]+' "$f" | head -1 | cut -d= -f2)
+    if printf '%s' "$vac_raw" | grep -qE '^\$\{?[A-Za-z_]'; then
+      # a generator may defer to a variable; resolve it inside the same file
+      local vac_var
+      vac_var=$(printf '%s' "$vac_raw" | sed -E 's/^\$\{?([A-Za-z_][A-Za-z0-9_]*).*/\1/')
+      vac_val=$(grep -oE "^[[:space:]]*${vac_var}=[0-9]+" "$f" | head -1 | cut -d= -f2)
+    else
+      vac_val="$vac_raw"
+    fi
+    if [ -z "$vac_val" ]; then
+      fail "R11 this script starts a SeaweedFS master but never sets -vacuumIntervalSeconds; the 840 s default sweep can interrupt a chunk upload and wedge the export" "$f" 0
+    elif ! printf '%s' "$vac_val" | grep -qE '^[0-9]+$'; then
+      fail "R11 -vacuumIntervalSeconds must be a plain number of seconds, got '$vac_val'" "$f" 0
+    elif [ "$vac_val" -lt 86400 ]; then
+      fail "R11 -vacuumIntervalSeconds=$vac_val is below 86400 s; the sweep would run inside the measurement window" "$f" 0
+    fi
+    # cross-file agreement, once per directory
+    local mdir
+    mdir=$(cd "$(dirname "$f")" && pwd)
+    case " $R11_SEEN_DIRS " in
+      *" $mdir "*) : ;;
+      *)
+        R11_SEEN_DIRS="$R11_SEEN_DIRS $mdir"
+        local sib sval
+        for sib in "$mdir"/master*.sh; do
+          [ -f "$sib" ] || continue
+          sval=$(grep -oE 'vacuumIntervalSeconds=[0-9]+' "$sib" | head -1 | cut -d= -f2)
+          if [ -z "$sval" ]; then
+            fail "R11 sibling master script $(basename "$sib") does not set -vacuumIntervalSeconds; a cluster created without it comes up with the 14-minute default" "$f" 0
+          elif [ -n "$vac_val" ] && [ "$sval" != "$vac_val" ]; then
+            fail "R11 master scripts disagree on -vacuumIntervalSeconds ($sib has $sval, this file has $vac_val); the two tiers would not be comparable" "$f" 0
+          fi
+        done
+        ;;
+    esac
+  fi
+
   local n=0
+  local prev_continued=0
   while IFS= read -r line; do
     n=$((n+1))
+
+    # R12  a comment line inside a backslash-continued command TRUNCATES it:
+    #      the backslash joins the next physical line into the command, and a
+    #      '#' there starts a comment that ends at the newline, so the rest of
+    #      the command is executed as a separate statement.  Verified:
+    #        printf '%s\n' a \
+    #          # comment
+    #          b        # <- runs "b" as its own command
+    #      bash -n does not catch it, because the result is still valid syntax.
+    if [ "$prev_continued" -eq 1 ]; then
+      local trimmed="${line#"${line%%[![:space:]]*}"}"
+      case "$trimmed" in
+        '#'*) fail "R12 a comment inside a backslash-continued command truncates it (the next line becomes a separate command); move the comment above the command" "$f" "$n" ;;
+      esac
+    fi
+    prev_continued=0
+    case "$line" in *\\) prev_continued=1 ;; esac
+
     # strip full-line comments
     local code="${line%%#*}"
     case "$code" in *"'"*"'"*) : ;; esac

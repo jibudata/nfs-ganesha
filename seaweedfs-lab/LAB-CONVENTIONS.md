@@ -201,4 +201,76 @@ sudo systemctl restart ganesha
   cluster state dominated the device difference and inverted the conclusion.
 - **Never `weed master` with the default `-vacuumIntervalSeconds=840`** while
   benchmarking: the vacuum sweep makes the volume server compact volumes and
-  resets in-flight chunk uploads.
+  resets in-flight chunk uploads. See R11 below for the mechanism and for the
+  parameter's two traps.
+
+## 7. Master startup parameters
+
+**R11 — Every master startup script must set `-vacuumIntervalSeconds` to at least
+86400, and every master script in a directory must use the same value.**
+
+The parameter is the period of the master's automatic vacuum sweep (SeaweedFS
+4.54, commit `5ef99c1d`). The default is 840 s. What that sweep does:
+
+- `weed/topology/topology_event_handling.go` runs it in
+  `for { ...; time.Sleep(vacuumInterval + jitter) }` — **the body runs before the
+  first sleep**, so a freshly started master sweeps once, immediately.
+- The sweep covers every volume of every collection. A volume qualifies when
+  `GarbageRatio >= garbageThreshold` (default 0.3).
+- Compaction is a **full rewrite** of the volume's `.dat`
+  (`CompactByIndex` → `.cpd`/`.cpx`), and the commit phase holds
+  `dataFileSyncLock` + `dataFileAccessLock`, so reads and writes of that volume
+  block while it runs.
+- `weed mount`'s chunk upload carries a stall watchdog
+  (`weed/operation/upload_content.go`): on timeout it cancels the POST. The
+  volume server reads that POST as multipart
+  (`weed/storage/needle/needle_parse_upload.go`) and answers
+  `multipart: NextPart: unexpected EOF` → HTTP 400.
+- Then: volume server blocked → FUSE upload blocked → **Ganesha blocks (it has
+  no write timeout)** → the NFS client on a hard mount retries forever → the
+  export is down.
+
+Two traps in the parameter itself:
+
+- **`0` does not disable the sweep.** `vacuumInterval <= 0` is rewritten to
+  14 minutes.
+- The real switch is `weed shell -master=127.0.0.1:9333` →
+  `volume.vacuum.disable`. It is a **runtime** flag and does not survive a
+  master restart; `-vacuumIntervalSeconds` does. Use both: the flag keeps the
+  post-restart sweep out of the way, the shell command stops the sweep that a
+  restart triggers immediately.
+
+Why the invariant is "every script, same value": cluster A's `master.sh` shipped
+**without** the flag while `master-b.sh` and `master-nvme-fresh.sh` had it, and
+`make-cluster.sh` — the generator — did not emit it either, so *every newly
+created cluster came up with the 14-minute default*. The running cluster A master
+carried the flag only because its process was started before the script was
+rewritten; nothing failed until the next restart. A tier that sweeps every 14
+minutes next to one that sweeps every 24 hours also makes any A/B comparison a
+lie.
+
+```bash
+exec "$SW_BIN" master \
+  -mdir="$SW_MASTER_DIR" \
+  -peers=none \
+  -vacuumIntervalSeconds=86400 \
+  -telemetry=false
+```
+
+## 8. Shell syntax
+
+**R12 — A comment inside a backslash-continued command truncates it.**
+
+```bash
+exec "$SW_BIN" master \
+  -ip="$SW_IP" \
+  # this comment sits inside the continuation
+  -peers=none
+```
+
+The `\` joins the next physical line into the command; the `#` there starts a
+comment that ends at the newline, so `-peers=none` is executed as a **separate
+statement** — `command not found`, or worse, something else runs. `bash -n` does
+not catch it, because the result is still valid syntax. Put the comment above
+the command instead.
+

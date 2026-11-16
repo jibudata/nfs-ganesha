@@ -15,6 +15,14 @@ SW_BIN=/usr/local/bin/weed
 SW_ROOT=/home/ys1000/seaweedfs
 SCRIPTS=$SW_ROOT/scripts
 
+# The master sweeps for garbage every -vacuumIntervalSeconds (default 840 s).
+# A sweep rewrites whole volumes and interrupts the in-flight chunk upload
+# ("multipart: NextPart: unexpected EOF", HTTP 400), which wedges the FUSE
+# mount, then the Ganesha export, then the NFS client.  A cluster created
+# without this flag comes up with the 14-minute default and poisons the
+# measurement window.  See LAB-CONVENTIONS R11.
+SW_VACUUM_INTERVAL_SECONDS=86400
+
 mkdir -p "$DATA" "$CACHE" "$FILERLDB" "$MASTERDIR" "$MNT"
 
 cat > "$SCRIPTS/master-$TAG.sh" <<EOF
@@ -25,6 +33,7 @@ exec "$SW_BIN" master \\
   -port=$M_HTTP -port.grpc=$M_GRPC \\
   -mdir="$MASTERDIR" \\
   -peers=none \\
+  -vacuumIntervalSeconds=$SW_VACUUM_INTERVAL_SECONDS \\
   -telemetry=false \\
   -volumeSizeLimitMB=30720
 EOF
@@ -144,6 +153,19 @@ sudo systemctl daemon-reload
 sudo systemctl enable "seaweedfs-master-$TAG" "seaweedfs-volume-$TAG" "seaweedfs-filer-$TAG" "seaweedfs-mount-$TAG" >/dev/null 2>&1
 
 sudo systemctl start "seaweedfs-master-$TAG"; sleep 3
+# -vacuumIntervalSeconds only spaces the automatic vacuum sweep out; it does
+# not turn it off, and the sweep loop runs its body BEFORE the first sleep, so
+# a freshly started master sweeps once immediately.  "volume.vacuum.disable"
+# is a runtime flag on the master (it does not survive a restart, which is
+# exactly why the interval above is needed too).  A new cluster must come up
+# with the sweep off: a sweep rewrites whole volumes and interrupts the
+# in-flight chunk upload, which wedges the FUSE mount and the export.
+if ! printf 'lock\nvolume.vacuum.disable\nunlock\nexit\n' \
+     | timeout 30 "$SW_BIN" shell -master="$IP:$M_HTTP" >/dev/null 2>&1; then
+  echo "  WARNING: could not disable the automatic vacuum sweep on $M_HTTP" >&2
+  echo "           run it by hand: weed shell -master=$IP:$M_HTTP" >&2
+  echo "           then: lock / volume.vacuum.disable / unlock" >&2
+fi
 sudo systemctl start "seaweedfs-volume-$TAG"; sleep 3
 sudo systemctl start "seaweedfs-filer-$TAG";  sleep 3
 sudo systemctl start "seaweedfs-mount-$TAG";  sleep 6

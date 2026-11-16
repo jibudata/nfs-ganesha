@@ -315,7 +315,7 @@ either — which is itself the S5 finding.
 
 **Findings.**
 
-- `scripts/lint-lab-script.sh` encodes the mechanical footguns (R1–R10 + R4a) as
+- `scripts/lint-lab-script.sh` encodes the mechanical footguns (R1–R12 + R4a) as
   a deterministic checker. Run against **the lab's own script tree** it came
   back `result: FAIL` with **21 ERRORs**: four `pgrep -f` self-matches (the
   footgun that had already killed two sessions), three `mountpoint` calls, and
@@ -403,6 +403,76 @@ either — which is itself the S5 finding.
   跟着重启 Ganesha，否则导出静默失效。
 - 这条同时解释了为什么"客户端看到的大小正确"不能作为落盘证据。
 
+## S12 · The vacuum sweep: the parameter was set in the wrong place, and the generator never set it at all
+
+**Findings.**
+
+- The masters were started with `-vacuumIntervalSeconds=86400` to keep the
+  automatic vacuum sweep out of the measurement window, and that was recorded as
+  "three masters, all set". Re-checking the actual state on 2026-11-16 evening:
+  - all three **running** masters did carry the flag (verified by scanning
+    `/proc/<pid>/cmdline`);
+  - but cluster A's systemd unit `ExecStart` points at `scripts/master.sh`, and
+    **that script did not contain the flag**. `master-b.sh` and
+    `master-nvme-fresh.sh` did;
+  - the running cluster A master started at 10:48:05 and `master.sh` was
+    rewritten at 13:00:05 — the process was carrying a flag the script no longer
+    had.
+  - ⇒ the next `systemctl restart seaweedfs-master` (or any `Restart=on-failure`
+    after a crash) would have brought the master back with the **default 840 s**
+    sweep, silently re-opening the failure the parameter was added to close.
+- Worse, `make-cluster.sh` — the script that **generates** a cluster's master
+  script — never emitted the flag at all. Every cluster created from that
+  template came up with the 14-minute default. The hand-patched scripts were
+  the exception, not the rule.
+- The parameter is the period of the master's automatic vacuum sweep (SeaweedFS
+  4.54, commit `5ef99c1d`), and the exposure was not theoretical. Cluster A's
+  volumes were sitting at a **46 % garbage ratio** at the time of the check
+  (`volume.list`: volume 1 — 1 015 995 688 B total, 466 627 182 B deleted,
+  226 of 509 needles deleted), far above the 0.3 threshold. A single sweep
+  would have compacted five volumes of the cluster that every measurement runs
+  against. The historical log agrees: `master.log` shows
+  `Start vacuuming 7 on 127.0.0.1:8081` at 10:28:59 — the sweep that broke
+  the export that morning.
+- Source-level (SeaweedFS 4.54, commit `5ef99c1d`) the parameter is not what
+  "disabled" suggests:
+  - it is the **period** of the master's automatic vacuum sweep, default 840 s
+    (`weed/command/master.go:118`);
+  - the sweep loop runs its body **before** the first sleep, so a restarted
+    master sweeps once immediately (`weed/topology/topology_event_handling.go:33`);
+  - a volume qualifies at `GarbageRatio >= garbageThreshold` (0.3) and is then
+    **fully rewritten**; the commit phase holds the volume's sync and access
+    locks, blocking its reads and writes;
+  - `weed mount`'s upload stall watchdog then cancels the POST, and the volume
+    server's multipart reader answers `multipart: NextPart: unexpected EOF` →
+    HTTP 400;
+  - `vacuumIntervalSeconds=0` does **not** disable the sweep — `<= 0` is
+    rewritten to 14 minutes. The only runtime switch is `weed shell →
+    volume.vacuum.disable`, which does not survive a restart. The durable
+    combination is both: the flag for the post-restart sweep, the shell command
+    for the sweep a restart triggers immediately.
+
+**Done.**
+
+- `scripts/master.sh` now carries the flag, and `scripts/make-cluster.sh` emits
+  it into every cluster it generates — the generator was the actual origin of
+  the drift, so patching only the generated scripts would have been a patch that
+  does not hold.
+- New rules in `LAB-CONVENTIONS.md`: **R11** (every master startup script sets
+  `-vacuumIntervalSeconds` ≥ 86400, and all master scripts in a directory agree
+  on the value) and **R12** (a comment inside a backslash-continued command
+  truncates it — hit while fixing `master.sh`, and `bash -n` does not catch it).
+- The linter checks both. R11 was verified against deliberately broken samples:
+  missing flag, value below the floor, two scripts disagreeing, a sibling
+  without the flag, and a generator that resolves the value through a variable.
+
+**Apply when:**
+- 改任何"启动参数"类的东西，**必须改到 systemd `ExecStart` 真正指向的脚本或
+  配置文件里**；改完重新扫 `/proc/<pid>/cmdline` —— 不能只看当前进程，也不能
+  只看脚本。
+- **生成器比生成物更值得审**：生成物里的漂移会被一次次复制出去。
+- 看到"参数加了但好像没生效"，按 生成器 → 脚本 → 进程命令行 的顺序查。
+
 ## Where the improvements landed
 
 | candidate | artefact | status |
@@ -411,7 +481,7 @@ either — which is itself the S5 finding.
 | S1 landed-bytes assertion | `scripts/final-bench.sh` (`void=` column), `scripts/sustained-v2.sh` (`landed_mib`) | done |
 | S2 CPU bound | `scripts/final-bench.sh` (`cpubad=` column) | done |
 | S3 dmesg/journal early | `AGENTS.md`, `LAB-CONVENTIONS.md` | done |
-| S4 shell footgun linter | `scripts/lint-lab-script.sh` (R1–R10 + R4a) | done |
+| S4 shell footgun linter | `scripts/lint-lab-script.sh` (R1–R12 + R4a) | done |
 | S5 workspace navigation | `AGENTS.md` | done |
 | S6 repo CI + commit the patch | PR [#1](https://github.com/jibudata/nfs-ganesha/pull/1) + PR [#2](https://github.com/jibudata/nfs-ganesha/pull/2), both green on GitHub Actions | done (upstream push is a maintainer decision) |
 | S7 tool economy | `LAB-CONVENTIONS.md` R9 | done |
@@ -419,6 +489,7 @@ either — which is itself the S5 finding.
 | S9 no-ops found | `RETRO.md` §S9 | done |
 | S10 the guardrail did not cover our own artifacts | `scripts/lib-nfslab.sh`, R3/R7 rewritten, 53 scripts lint-clean on both sides | done |
 | S11 a remounted FUSE mount silently invalidates the export | R10 in the linter, `final-sus.sh` fixed, `recover-fuse.sh` documented as a procedure | done |
+| S12 the vacuum sweep was configured in the wrong place | R11 + R12 in the linter, `master.sh` and `make-cluster.sh` fixed | done |
 | R4a non-zero landing probes | `scripts/recover-fuse.sh`, `scripts/sustained-v2.sh`, linter R4a | done |
 
 ## Numbers that had to be corrected because they were measured on a wedged mount

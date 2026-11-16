@@ -300,7 +300,7 @@ MDCACHE {
 
 | # | 动作 | 优先级 |
 |---|---|---|
-| 1 | 所有 `weed master` 加 `-vacuumIntervalSeconds=86400`（默认 840 s 的 vacuum 会打断 chunk 上传 → FUSE 阻塞 → Ganesha 阻塞 → 客户端无限重试） | **P0** |
+| 1 | 所有 `weed master` 加 `-vacuumIntervalSeconds=86400`（默认 840 s 的 vacuum 会打断 chunk 上传 → FUSE 阻塞 → Ganesha 阻塞 → 客户端无限重试）。**参数必须写进 systemd `ExecStart` 真正指向的启动脚本**，并让 `make-cluster.sh` 生成它 —— 2026-11-16 复查发现 cluster A 的 `master.sh` 和生成器都漏了它，一旦重启就退回 840 s。再叠加运行时开关 `weed shell -master=... → lock, volume.vacuum.disable, unlock`（重启后失效，所以两者都要） | **P0** |
 | 2 | 给 Ganesha 加**写超时/熔断**（当前完全没有；FUSE 僵死时它无限阻塞且"成功"返回丢数据） | **P0** |
 | 3 | 监控 volume `.dat` 的增长速率 vs NFS WRITE 速率；两者背离 = 挂载僵死**或导出已失效**。WRITE 速率取自 Prometheus：`http://192.168.3.146:32000/metrics`（远端节点用主机 IP，别用 `127.0.0.1`），抓取要 `curl -o file` 再解析 | **P0** |
 | 4 | **重启 FUSE 挂载服务后必须重启 Ganesha**（`systemctl restart seaweedfs-mount*.service` 之后紧跟 `systemctl restart ganesha`）；否则导出静默失效：写成功、客户端无报错、字节全部丢失 | **P0** |
@@ -313,6 +313,11 @@ MDCACHE {
 **僵死自愈脚本**：`scripts/recover-fuse.sh`（lazy umount → 等 `/proc/mounts` 消失 → 重启 mount → **重启 Ganesha** → 用真实落盘字节校验）。
 
 **只读体检脚本**：`scripts/verify-exports.sh`（不动栈，只挂载、写 32 MiB 非零数据、核对 volume `.dat` 增量、卸载）。任何时候想知道"导出现在到底健康吗"，跑它就够了——它输出 `delta=32 MiB OK` 才算健康。
+
+**测量前必跑的自检**：`scripts/check-vacuum-state.sh`。它查三层，任何一层不满足都会让 sweep
+在压测窗口里打断上传：启动脚本有没有设 `-vacuumIntervalSeconds`（≥ 86400）、**运行中的进程**
+命令行有没有带、master 有没有被 `volume.vacuum.disable` 关掉、以及关掉之后有没有又跑过 sweep。
+输出 `result: PASS` 才允许开测。
 
 **它不是只在崩溃后用**：`recover-fuse.sh` 是一套**顺序**，任何一次挂载服务重启之后都该走一遍。
 Ganesha 只在启动时解析一次导出路径并持有该挂载的 dirfd；挂载被卸载重装后，这个 dirfd
