@@ -20,10 +20,12 @@ permissions:
 jobs:
   build:
     name: build
-    runs-on: ubuntu-22.04
+    # Pinned to 24.04: it is the release the build was validated on, and it is
+    # where every build dependency below comes from.
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           submodules: false
           fetch-depth: 0
@@ -35,6 +37,9 @@ jobs:
       - name: Fetch the ntirpc submodule
         run: git submodule update --init --recursive --depth 1 src/libntirpc
 
+      # liburcu-dev is not an optional extra: src/CMakeLists.txt looks up
+      # urcu-bp unconditionally and aborts the configure step when the
+      # library or its headers are missing.
       - name: Install build dependencies
         run: |
           sudo apt-get update -q
@@ -43,7 +48,7 @@ jobs:
             libssl-dev libkrb5-dev libnfsidmap-dev \
             libdbus-1-dev libcap-dev libattr1-dev libacl1-dev \
             uuid-dev libblkid-dev libaio-dev libjemalloc-dev \
-            libtirpc-dev
+            libtirpc-dev liburcu-dev
 
       - name: Configure
         run: |
@@ -79,10 +84,10 @@ jobs:
 
   format:
     name: clang-format (changed lines)
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           submodules: false
           fetch-depth: 0
