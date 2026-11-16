@@ -302,7 +302,7 @@ MDCACHE {
 |---|---|---|
 | 1 | 所有 `weed master` 加 `-vacuumIntervalSeconds=86400`（默认 840 s 的 vacuum 会打断 chunk 上传 → FUSE 阻塞 → Ganesha 阻塞 → 客户端无限重试） | **P0** |
 | 2 | 给 Ganesha 加**写超时/熔断**（当前完全没有；FUSE 僵死时它无限阻塞且"成功"返回丢数据） | **P0** |
-| 3 | 监控 volume `.dat` 的增长速率 vs NFS WRITE 速率；两者背离 = 挂载僵死**或导出已失效** | **P0** |
+| 3 | 监控 volume `.dat` 的增长速率 vs NFS WRITE 速率；两者背离 = 挂载僵死**或导出已失效**。WRITE 速率取自 Prometheus：`http://192.168.3.146:32000/metrics`（远端节点用主机 IP，别用 `127.0.0.1`），抓取要 `curl -o file` 再解析 | **P0** |
 | 4 | **重启 FUSE 挂载服务后必须重启 Ganesha**（`systemctl restart seaweedfs-mount*.service` 之后紧跟 `systemctl restart ganesha`）；否则导出静默失效：写成功、客户端无报错、字节全部丢失 | **P0** |
 | 5 | 客户端保持 `hard` + `sync`；不要为了"响应性"改 `soft`/`softerr` | P1 |
 | 6 | 客户端 fio/应用用 **≥8 MiB 块**（若走 O_DIRECT，收益 4.1×），或**多文件并发**（收益 1.64×） | P1 |

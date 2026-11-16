@@ -72,7 +72,40 @@ same durability.**
 | config | `/etc/ganesha/ganesha.conf` |
 | unit | `ganesha.service` (enabled, `Type=simple`, `-F` foreground) |
 | export | `192.168.3.146:/seaweedfs` → `/home/ys1000/seaweedfs/mnt` |
-| Prometheus | `http://127.0.0.1:32000/metrics` |
+| Prometheus | `http://127.0.0.1:32000/metrics` (on the server) · **`http://192.168.3.146:32000/metrics` (from another node)** |
+
+### Scraping the metrics from another node
+
+`127.0.0.1:32000` only exists on the server itself. From any node on the
+same LAN use the server's address:
+
+```bash
+curl -s http://192.168.3.146:32000/metrics | head
+```
+
+This works because `Monitoring_Addr = 0.0.0.0` in `NFS_CORE_PARAM`, i.e. the
+exporter listens on every interface. Measured from another node: HTTP 200,
+894 lines, ~65 KB, 37 ms — identical to what the server sees locally, and the
+`ganesha_export_metadata` series lists all four exports.
+
+Two things worth knowing before changing it:
+
+- **Unset is not the same as "loopback".** `Monitoring_Addr` defaults to
+  `0.0.0.0`, and the startup code reads that as "not set" and falls back to
+  `Bind_Addr` — which is also `0.0.0.0` by default. LAN reachability
+  therefore depends on *two* defaults lining up, which is why the setting is
+  now explicit.
+- **Do not bind it to a specific address to narrow the exposure.** The
+  exporter calls `PEXIT()` when `bind()` fails, so a missing or changed
+  interface address would take Ganesha down at startup. The endpoint also
+  listens on the docker bridges (`172.17.0.1`, `172.18.0.1`); if that matters,
+  scope it with a firewall rule rather than with the bind address.
+
+If the box is ever behind NAT, use an SSH tunnel instead of exposing the port:
+
+```bash
+ssh -N -L 32000:127.0.0.1:32000 ys1000@192.168.3.146
+```
 
 Build: `RelWithDebInfo`, FSAL_VFS only (all other FSALs off), monitoring on,
 `USE_GSS` compiled in but disabled at runtime via `NFS_KRB5 { Active_krb5 = false; }`.
