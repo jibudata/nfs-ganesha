@@ -1,0 +1,15 @@
+=== buffered, no explicit sync (unsafe: data may sit in caches) ===
+buffered_nosync_2G           fioBW=3710MiB/s total_elapsed=3.448450924s effective=0 MiB/s
+    volume-server data dir: 42541 MiB
+
+=== buffered + end_fsync=1 (one flush at the end = durable) ===
+buffered_endsync_2G          fioBW=716MiB/s  total_elapsed=3.220782890s effective=0 MiB/s
+    volume-server data dir: 44593 MiB
+
+=== buffered + end_fsync=1, 8 GiB (how does the flush cost scale?) ===
+buffered_endsync_8G          fioBW=518MiB/s  total_elapsed=16.153131212s effective=0 MiB/s
+    volume-server data dir: 52855 MiB
+
+=== O_DIRECT reference for the same 2 GiB ===
+odirect_ref_2G              fioBW=107MiB/s  total_elapsed=19.650082409s
+PATTERN DONE

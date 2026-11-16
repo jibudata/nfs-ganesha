@@ -1,0 +1,8 @@
+layer,bs,MiB_s,IOPS,write_ops,bytes_per_write_KiB,ganesha_cpu_s,mount_cpu_s
+nfs,512k,493MiB/s,985,2048,512.0,7.26,.01
+nfs,1M,861MiB/s,861,1024,1024.0,4.31,0
+nfs,4M,1759MiB/s,439,1024,1024.0,3.12,0
+nfs,8M,2032MiB/s,253,1024,1024.0,2.83,0
+fuse,1M,1875MiB/s,1875,0,0,.03,2.65
+fuse,4M,2165MiB/s,541,0,0,.02,2.36
+fuse,8M,1984MiB/s,248,0,0,.02,2.39

@@ -46,6 +46,8 @@ patch-for-HPSS-nfs-ganesha-*
 *.diff
 *.patch
 !debian/patches/*.patch
+# the performance lab ships its V15.9 fix as a patch file
+!seaweedfs-lab/patches/*.patch
 core.*
 *cmake_install.cmake
 libfsal*.so*

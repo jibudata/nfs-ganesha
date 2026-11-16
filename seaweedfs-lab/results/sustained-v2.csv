@@ -1,0 +1,5 @@
+tier,rep,size,fio_BW,effective_MiB_s,elapsed_s,landed_mib,size_mib,ganesha_cpu_s,mount_cpu_s,volume_cpu_s,filer_cpu_s,master_cpu_s,total_cpu_s,io_err,fio_rc,void,cpubad
+NVME_FRESH,1,6G,533MiB/s,516.9,11.885340520,6184,6144,4.79,18.82,19.54,5.83,0.75,49.73,0,0,void=0,cpubad=0
+HDD,1,6G,233MiB/s,229.5,26.770386330,6195,6144,5.49,22.87,21.67,0.11,0.03,50.17,0,0,void=0,cpubad=0
+NVME_FRESH,2,6G,539MiB/s,523.2,11.742820115,6184,6144,4.59,18.70,19.07,6.05,0.72,49.13,0,0,void=0,cpubad=0
+HDD,2,6G,235MiB/s,232.0,26.481932218,6194,6144,5.01,21.51,20.93,0.13,0.03,47.61,0,0,void=0,cpubad=0

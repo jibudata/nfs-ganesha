@@ -1,0 +1,29 @@
+nfs41_256k_1job: (g=0): rw=write, bs=(R) 256KiB-256KiB, (W) 256KiB-256KiB, (T) 256KiB-256KiB, ioengine=libaio, iodepth=16
+fio-3.36
+Starting 1 process
+nfs41_256k_1job: Laying out IO file (1 file / 2048MiB)
+
+nfs41_256k_1job: (groupid=0, jobs=1): err= 0: pid=117971: Mon Nov 16 09:41:42 2026
+  write: IOPS=178, BW=44.7MiB/s (46.8MB/s)(2048MiB/45843msec); 0 zone resets
+    slat (usec): min=11, max=243, avg=27.96, stdev=13.71
+    clat (msec): min=3, max=377, avg=89.49, stdev=49.24
+     lat (msec): min=3, max=377, avg=89.52, stdev=49.24
+    clat percentiles (msec):
+     |  1.00th=[   23],  5.00th=[   33], 10.00th=[   39], 20.00th=[   49],
+     | 30.00th=[   59], 40.00th=[   70], 50.00th=[   81], 60.00th=[   92],
+     | 70.00th=[  104], 80.00th=[  123], 90.00th=[  153], 95.00th=[  186],
+     | 99.00th=[  264], 99.50th=[  292], 99.90th=[  347], 99.95th=[  359],
+     | 99.99th=[  380]
+   bw (  KiB/s): min=17920, max=89600, per=100.00%, avg=45832.44, stdev=14865.91, samples=91
+   iops        : min=   70, max=  350, avg=179.03, stdev=58.07, samples=91
+  lat (msec)   : 4=0.01%, 10=0.02%, 20=0.40%, 50=20.87%, 100=45.98%
+  lat (msec)   : 250=31.42%, 500=1.28%
+  cpu          : usr=0.27%, sys=0.38%, ctx=5862, majf=0, minf=10
+  IO depths    : 1=0.1%, 2=0.1%, 4=0.1%, 8=0.1%, 16=99.8%, 32=0.0%, >=64=0.0%
+     submit    : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     complete  : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.1%, 32=0.0%, 64=0.0%, >=64=0.0%
+     issued rwts: total=0,8192,0,0 short=0,0,0,0 dropped=0,0,0,0
+     latency   : target=0, window=0, percentile=100.00%, depth=16
+
+Run status group 0 (all jobs):
+  WRITE: bw=44.7MiB/s (46.8MB/s), 44.7MiB/s-44.7MiB/s (46.8MB/s-46.8MB/s), io=2048MiB (2147MB), run=45843-45843msec

@@ -1,0 +1,33 @@
+export appended
+ganesha: 0 active 
+192.168.3.146:/local-ext4 on /mnt/ganesha-local type nfs4 (rw,relatime,vers=4.1,rsize=1048576,wsize=1048576,namlen=255,hard,proto=tcp,timeo=600,retrans=2,sec=sys,clientaddr=192.168.3.146,local_lock=none,addr=192.168.3.146)
+
+=== NFS(v4.1) -> Ganesha -> LOCAL EXT4 (no FUSE) ===
+ext4_1M_1job_odirect     WRITE: bw=719MiB/s (754MB/s), 719MiB/s-719MiB/s (754MB/s-754MB/s), io=2048MiB (2147MB), ru
+      write: IOPS=719, BW=719MiB/s (754MB/s)(2048MiB/2847msec); 0 zone resets
+        clat (msec): min=4, max=393, avg=22.14, stdev=33.45
+ext4_1M_1job_buffered    WRITE: bw=3835MiB/s (4022MB/s), 3835MiB/s-3835MiB/s (4022MB/s-4022MB/s), io=2048MiB (2147M
+      write: IOPS=3835, BW=3835MiB/s (4022MB/s)(2048MiB/534msec); 0 zone resets
+        clat (nsec): min=1786, max=8612.5k, avg=3891986.84, stdev=1074551.19
+ext4_1M_8job_odirect     WRITE: bw=1574MiB/s (1650MB/s), 197MiB/s-203MiB/s (206MB/s-213MB/s), io=4096MiB (4295MB), 
+      write: IOPS=196, BW=197MiB/s (206MB/s)(512MiB/2600msec); 0 zone resets
+        clat (msec): min=9, max=244, avg=80.97, stdev=31.42
+      write: IOPS=203, BW=203MiB/s (213MB/s)(512MiB/2522msec); 0 zone resets
+        clat (msec): min=27, max=231, avg=78.45, stdev=32.56
+      write: IOPS=196, BW=197MiB/s (206MB/s)(512MiB/2603msec); 0 zone resets
+        clat (msec): min=8, max=220, avg=81.02, stdev=31.95
+      write: IOPS=200, BW=201MiB/s (210MB/s)(512MiB/2553msec); 0 zone resets
+        clat (msec): min=22, max=215, avg=79.49, stdev=30.34
+      write: IOPS=201, BW=201MiB/s (211MB/s)(512MiB/2545msec); 0 zone resets
+        clat (msec): min=27, max=219, avg=79.25, stdev=31.86
+      write: IOPS=200, BW=200MiB/s (210MB/s)(512MiB/2560msec); 0 zone resets
+        clat (msec): min=9, max=219, avg=79.69, stdev=32.43
+      write: IOPS=198, BW=199MiB/s (209MB/s)(512MiB/2574msec); 0 zone resets
+        clat (msec): min=21, max=212, avg=80.01, stdev=30.49
+      write: IOPS=198, BW=198MiB/s (208MB/s)(512MiB/2585msec); 0 zone resets
+        clat (msec): min=25, max=226, avg=80.50, stdev=33.70
+
+=== reference: same host, direct to the ext4 dir (no NFS, no Ganesha) ===
+        clat (usec): min=1315, max=7022, avg=2549.13, stdev=585.35
+      WRITE: bw=6077MiB/s (6372MB/s), 6077MiB/s-6077MiB/s (6372MB/s-6372MB/s), io=2048MiB (2147MB), run=337-337msec
+EXT4 CONTROL DONE

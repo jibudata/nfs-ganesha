@@ -1,0 +1,8 @@
+fuse_1M_4job: (g=0): rw=write, bs=(R) 1024KiB-1024KiB, (W) 1024KiB-1024KiB, (T) 1024KiB-1024KiB, ioengine=libaio, iodepth=16
+...
+fio-3.36
+Starting 4 processes
+fuse_1M_4job: Laying out IO file (1 file / 1024MiB)
+fuse_1M_4job: Laying out IO file (1 file / 1024MiB)
+fuse_1M_4job: Laying out IO file (1 file / 1024MiB)
+fuse_1M_4job: Laying out IO file (1 file / 1024MiB)

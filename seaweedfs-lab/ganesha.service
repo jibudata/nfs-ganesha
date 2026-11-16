@@ -1,0 +1,25 @@
+[Unit]
+Description=NFS-Ganesha V15.9 server (exports the SeaweedFS FUSE mount)
+Documentation=file:/home/ys1000/seaweedfs/scripts/README.md
+After=network-online.target rpcbind.service seaweedfs-mount.service
+Requires=seaweedfs-mount.service
+Wants=network-online.target rpcbind.service
+
+[Service]
+Type=simple
+# -N is the DEBUG LEVEL in V15.9 (not a worker count).
+# Keep it at NIV_EVENT for benchmark runs: NIV_DEBUG logging would skew results.
+# -F keeps the daemon in the foreground. Without it ganesha.nfsd forks, systemd
+# sees the parent exit and SIGTERMs the still-running child -> instant shutdown.
+ExecStart=/usr/bin/ganesha.nfsd -f /etc/ganesha/ganesha.conf -F -N NIV_EVENT -L /var/log/ganesha/ganesha.log
+RuntimeDirectory=ganesha
+RuntimeDirectoryMode=0755
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+KillSignal=SIGTERM
+LimitNOFILE=65536
+TasksMax=infinity
+
+[Install]
+WantedBy=multi-user.target

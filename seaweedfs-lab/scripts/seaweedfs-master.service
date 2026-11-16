@@ -1,0 +1,20 @@
+[Unit]
+Description=SeaweedFS master (192.168.3.146 / NFS-Ganesha FUSE backend)
+Documentation=https://github.com/seaweedfs/seaweedfs
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ys1000
+Group=ys1000
+WorkingDirectory=/home/ys1000/seaweedfs
+ExecStart=/home/ys1000/seaweedfs/scripts/master.sh
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+StandardOutput=append:/home/ys1000/seaweedfs/logs/master.log
+StandardError=append:/home/ys1000/seaweedfs/logs/master.log
+
+[Install]
+WantedBy=multi-user.target

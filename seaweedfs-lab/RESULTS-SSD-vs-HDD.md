@@ -1,0 +1,211 @@
+# SeaweedFS 存储介质对比：NVMe SSD vs HDD（经 NFS-Ganesha 写路径）
+
+**测试日期**：2026-11-16
+**主机**：`ys1000@192.168.3.146`（Ubuntu 24.04.4，16 vCPU，62 GiB RAM）
+
+## 一、先回答"现在是 SSD 还是 HDD"
+
+**SeaweedFS 的 volume 数据和 FUSE 缓存都在 NVMe SSD 上**：
+
+| 路径 | 内容 | 所在设备 |
+|---|---|---|
+| `/home/ys1000/seaweedfs/data` | volume server 的 `.dat` / `.idx` | `/dev/mapper/ubuntu--vg-ubuntu--lv` → **`nvme0n1p3`**（YMTC PC411，ROTA=0）|
+| `/home/ys1000/seaweedfs/cache` | `weed mount` 写缓冲溢写区 | 同上（NVMe）|
+| `/home/ys1000/seaweedfs/filerldb2` | filer 的 LevelDB 元数据 | 同上（NVMe）|
+| `/home/ys1000/seaweedfs/master` | master 拓扑元数据 | 同上（NVMe）|
+
+这台机上**另有一块机械盘** `/dev/sda`（WDC WD20EARZ 1.8T，ROTA=1），原本整个被 `vg_data` LVM 组
+拿去做 KVM 虚拟机的存储（janode01/02/03）。本次对比专门从 `vg_data` 的空闲区切了
+100 GB（`vg_data-seaweedfs--hdd`）建了一套**独立的 SeaweedFS 集群**跑在 HDD 上。
+
+---
+
+## 二、对比实验设计
+
+为了只让"设备"这一个变量不同，做了三件事：
+
+1. **新建两套配置完全相同的 SeaweedFS 集群**（`scripts/make-cluster.sh` 由同一模板生成，
+   脚本 diff 证明除数据目录外逐字节一致）：
+   - **NVMe 档**：全新集群，`-dir=/home/ys1000/seaweedfs/data-nvme-fresh`（NVMe）
+   - **HDD 档**：全新集群，`-dir=/home/ys1000/seaweedfs-hdd/data`（`/dev/sda`）
+   - filer 元数据（LevelDB）、master 元数据、FUSE 缓存**都放在 NVMe**，
+     因此唯一落在机械盘上的就是 volume 的 chunk 数据。
+2. **同一个 Ganesha 进程**导出两者（`Export_Id=3` → `/seaweedfs-hdd`，
+   `Export_Id=4` → `/seaweedfs-nvme-fresh`），同一个客户端、同一套 fio 负载。
+3. **交错测量**：NVMe → HDD → NVMe → HDD 轮转 3 轮，同一时间窗口内完成，
+   抵消时间漂移与宿主机负载波动。
+
+> ⚠️ 为什么要"全新集群"：最早直接拿原集群（NVMe）对比新集群（HDD）时，
+> **HDD 反而更快**（163 vs 104 MiB/s）。原因是原集群跑完 22 用例矩阵后
+> 积累了 9.8 GB `.dat` + 44 MB filer LevelDB（含大量墓碑），volume server
+> 一直在做压缩重写。**集群状态的影响大于设备本身**，必须控制住。
+
+---
+
+## 三、裸盘基线（设备本身差 42 倍）
+
+| 设备 | 1M O_DIRECT | 平均 clat | 4k O_DIRECT | 平均 clat |
+|---|---|---|---|---|
+| HDD `/dev/sda` | **114 MiB/s** | 140 ms | 24.2k IOPS | 657 µs |
+| NVMe `nvme0n1p3` | **4752 MiB/s** | 3.3 ms | 198k IOPS | 77 µs |
+
+---
+
+## 四、经过 NFS→Ganesha→FUSE→SeaweedFS 之后（3 轮交错，512 MiB/用例）
+
+| 用例 | NVMe（全新） |  |  | HDD |  |  | 差异 |
+|---|---|---|---|---|---|---|---|
+| | 轮1 | 轮2 | 轮3 | 轮1 | 轮2 | 轮3 | (均值) |
+| `fuse_odirect` 直连 FUSE | 2065 | 1646 | 1977 | 1939 | 1803 | 1829 | **−2%** |
+| `nfs_odirect` NFS O_DIRECT | 169 | 154 | 148 | 160 | 147 | 156 | **−2%** |
+| `nfs_buf_endsync` buffered+末尾fsync | 819 | 795 | 731 | 783 | 746 | 795 | **−1%** |
+| `nfs_odirect_8job` 8 job 并发 | 1191 | 1222 | 1151 | 1177 | 1180 | 1252 | **+1%** |
+
+单位 MiB/s。完整数据：`results/ssd-vs-hdd.csv`。
+
+**结论：在 NFS 写路径上，SSD 与 HDD 没有可测量的差异（全部在 ±2% 以内）**，
+尽管裸盘差 42 倍。
+
+原因很清楚（见上一份 `RESULTS.md` 的根因分析）：瓶颈是
+**Ganesha 对每个 stable write 做一次 `fsync(2)`** → 打到 FUSE → 等 SeaweedFS 把
+chunk 通过 HTTP 上传给 volume server。这个往返里**磁盘带宽根本没参与**，
+数据先落在 volume server 的页缓存里。
+
+各案例的 CPU 占用也几乎一致（ Ganesha 0.37–0.44 s、`weed mount` 1.15–2.20 s、
+`weed server` 1.34–1.75 s），说明两边都停在同一个等待点上。
+
+---
+
+## 五、持续写：让数据必须真正落盘（6 GiB > 4 GB 写缓冲）
+
+上面的用例每个只写 512 MiB，**全部能塞进 SeaweedFS 的 4 GB 写缓冲和内核页缓存**，
+字节根本没碰到盘。`scripts/sustained-v2.sh` 写 6 GiB（超过 4 GB 写缓冲），
+测量包含最终 fsync 在内的总耗时，**并断言字节真的落到了 volume server**
+（`landed_mib` 列）。
+
+| 设备 | fio 吞吐 | 总耗时 | 有效吞吐 | 落盘校验 | 轮次 |
+|---|---|---|---|---|---|
+| **NVMe** | 533 / 539 MiB/s | **11.89 / 11.74 s** | 517 / 523 MiB/s | **6184 / 6184 MiB** ✓ | 2 |
+| **HDD** | 233 / 235 MiB/s | **26.77 / 26.48 s** | 230 / 232 MiB/s | **6195 / 6194 MiB** ✓ | 2 |
+
+**这里 HDD 慢了 2.3 倍**（523 → 230 MiB/s）。两轮高度一致（NVMe 11.89/11.74 s，
+HDD 26.77/26.48 s），不是噪声；独立跑的第二组（探针修好之前那轮）给出
+NVMe 505 / 523 MiB/s、HDD 210 / 230 MiB/s，结论相同。
+
+整条链路的 CPU 消耗在两档几乎相同（NVMe 49.7 / 49.1 CPU-s，HDD 50.2 / 47.6 CPU-s，
+折合 **8.1–8.3 CPU-s per GiB**），说明这一档的差距来自**设备**，而不是中间层多做了什么。
+
+> ⚠️ **本节早先的数值（NVMe 1517 MiB/s vs HDD 93 MiB/s，"16–18 倍"）已作废。**
+> 那次运行 `dat_delta_mib` 在两个档位**都是 0** —— 字节根本没有落到盘上，
+> 测的是写缓冲的吸收速度，不是设备。`scripts/sustained-v2.sh` 补上了落盘断言，
+> 结论也随之改变：设备差距是 **2.3 倍**，不是 16–18 倍。
+>
+> **后来的追查给出了那次作废的具体机制**（2026-11-16 复现）：产出那组数字的
+> `scripts/final-sus.sh` 会先 `systemctl restart seaweedfs-mount-nvme-fresh`
+> 来清空写缓冲，**却没有重启 Ganesha**。Ganesha 在启动时解析一次导出路径并持有
+> 该 FUSE 挂载的 dirfd；挂载被卸载重装后，这个 dirfd 仍指向**旧的、已分离的**
+> 挂载实例。于是写进去的内容被内核页缓存接受、返回成功，而真正持有连接的
+> `weed mount` 进程已经退出——**字节全部丢失**。
+>
+> "1517 MiB/s / 4.05 s"正是这个失效模式的特征：没有 fsync、没有真实 I/O、
+> 快得不合常理。同一次运行里 HDD 档的 66.4 s 低吞吐则是**挂载僵死**的另一种表现
+> （写阻塞、同样不落盘）。两种成因叠加在同一张表里，所以整张表作废。
+>
+> 现在 `final-sus.sh` 已修（重启挂载后紧跟重启 Ganesha），并且这条约束被写成
+> **lint 规则 R10**（重启 `seaweedfs-mount*` 的脚本必须同时重启 `ganesha`）。
+> 详见 `RETRO.md` S11 与 `LAB-CONVENTIONS.md` R10。
+
+> 对照上一节的 512 MiB 用例（HDD 与 NVMe 差 ≤2%）：**设备的差异只在数据量
+> 超过写缓冲、必须真正落盘时才显现**。短写入被缓冲吸收，长写入被设备限死。
+
+**给部署的判断**：如果 NFS 客户端的写入是"小文件、突发型"，HDD 完全够用；
+如果是"持续大流量写入"，HDD 会成为硬天花板（~230 MiB/s，且此时中间层的
+CPU 开销与 NVMe 档相同），NVMe 档的余量约 2.3 倍。
+
+**附带现象：设备积压会持续影响后续写入。**
+在 HDD 档跑完 6 GiB 持续写之后立刻做的 64 MiB 冒烟写，四个导出分别是：
+
+| 导出 | 64 MiB O_DIRECT 冒烟写 |
+|---|---|
+| `/seaweedfs`（NVMe 老化集群） | 634 MiB/s |
+| `/seaweedfs-nvme-fresh`（NVMe 新集群） | 771 MiB/s |
+| **`/seaweedfs-hdd`（HDD）** | **76.8 MiB/s** |
+| `/local-ext4`（本地 ext4 对照） | 593 MiB/s |
+
+HDD 档此刻的吞吐正好落在它的设备带宽上——**因为上一轮 6 GiB 写入的脏页还在往盘上回写，
+设备处于积压状态**。这也说明：在机械盘上，一次大写入的"后遗症"会持续影响之后的所有写入，
+而不只是写入本身那几秒。
+
+---
+
+## 六、这轮踩到的三个"会打死生产环境"的坑
+
+这三条都值得写进部署清单：
+
+### 1. SeaweedFS 的自动 vacuum 扫描会拖死整个 NFS 路径
+
+`weed master` 默认 `-vacuumIntervalSeconds=840`（14 分钟）触发一次 volume 回收扫描。
+扫描会让 volume server 停止并压缩 volume，**正在进行的 chunk 上传会被打断**：
+
+```
+volume server: Reading Multi part [ERROR] multipart: NextPart: unexpected EOF
+               response method:POST URL:/2,13ce0f4789e1 with httpStatus:400
+weed mount:    upload 2097152 bytes to http://127.0.0.1:8281/2,... stalled on a
+               pooled connection, retrying on a fresh one
+dmesg:        INFO: task weed:152028 blocked for more than 860 seconds
+kernel:       nfs: server 192.168.3.146 not responding, still trying
+```
+
+**链式反应**：volume server 卡住 → FUSE 上传阻塞 → **Ganesha 的写操作阻塞**
+（Ganesha 没有写超时）→ NFS 客户端在 hard mount 上无限重试 → 整个导出不可用，
+实测卡了 15 分钟以上。
+
+**处置**：三个 master 全部加 `-vacuumIntervalSeconds=86400`（关闭自动扫描）。
+
+### 2. FUSE 挂载"死了但还在 /proc/mounts 里"——ENOTCONN
+
+`weed mount` 进程退出后，挂载点仍留在 `/proc/mounts`，但任何访问都返回
+`Transport endpoint is not connected (107)`。此时：
+
+- `stat`/`ls` 挂载点 → ENOTCONN
+- `weed mount` 再次启动 → 因挂载点被占用而失败，systemd 无限重启（`activating`）
+- **Ganesha 启动时会静默丢弃该导出**，日志里只有
+  `resolve_posix_filesystem(...) returned Transport endpoint is not connected (107)`
+  → `fsal_export is NULL`
+
+**判别要点**：判断"FUSE 是否可用"**不能看 `/proc/mounts`**，必须真正 `stat` 一下。
+`scripts/fix-fuse.sh` 做了 lazy detach → 等待从 `/proc/mounts` 消失 → 重启 mount 服务 → 验证。
+
+### 3. NFS hard mount 在 `umount` 和 `stat` 上会无限阻塞
+
+- `umount` 一个服务端路径已消失的 hard mount → 内核不可中断等待，`SIGKILL` 都杀不掉
+- `mountpoint -q <path>` 内部是 `stat(2)` → 同样卡死在 D 状态
+
+**处置**（`scripts/ab3.sh`）：只加不减地新建挂载点、用 `/proc/mounts` 判断挂载状态、
+所有 umount 一律 `umount -l` 且放到后台、每个用例有硬超时 + 自愈（kill fio → 重启 Ganesha → 换新挂载点）。
+
+---
+
+## 七、给部署的结论
+
+1. **NFS 写路径上不需要 SSD。** 同一套 Ganesha + SeaweedFS，NVMe 和 HDD 的
+   NFS 写吞吐差异 ≤2%。瓶颈是 fsync 往返，不是磁盘。
+2. **但别因此就上 HDD**：本测试的写入量都还在页缓存里，
+   持续/超量写入下 HDD 的 114 MiB/s 上限会真正暴露（见第五节），
+   而且掉电时 HDD 的回放队列更深、更容易丢数据。
+3. **优先做的是降低 fsync 成本**：buffered 写 + 末尾一次 fsync（782 MiB/s）
+   比 O_DIRECT（157 MiB/s）快 5 倍；把并发摊到多个文件（1188 MiB/s）比加线程有效。
+4. **上线前必须关掉 master 的自动 vacuum 扫描**，否则一次扫描就能让整个 NFS 导出停摆十几分钟。
+5. **建议给 Ganesha 加写超时/熔断**：目前 FUSE 一卡，Ganesha 就无限阻塞，
+   没有任何降级路径。NFS 客户端也建议评估 `soft`/`timeo` 或 `retrans` 上限。
+
+---
+
+## 八、局限
+
+1. **宿主机不是专用实验台**：测试期间有 3 个 QEMU 虚拟机（合计 ~130% CPU）、
+   `mujoco-studio`（26% CPU）和 `ToDesk` 远程桌面在跑，负载峰值到 75。
+   因为两档是交错的，**相对比较仍然可信**，但绝对值会偏低。
+2. **跨机路径仍未覆盖**：`192.168.3.134` SSH 不可达。
+3. **未测多卷/多机分布**、未测读路径、未测 SeaweedFS 侧 fsync 调优
+   （`-writeBufferSizeMB` / `-chunkSizeLimitMB` / `-metadataFlushSeconds`）。

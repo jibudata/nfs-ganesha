@@ -1,0 +1,3 @@
+tier,size,MiB_s,elapsed_s,effective_MiB_s,dat_delta_mib,timeout
+NVME_FRESH,6G,1662MiB/s,4.050134830,1516.9,0,no
+HDD,6G,93.0MiB/s,66.421176950,92.5,0,no

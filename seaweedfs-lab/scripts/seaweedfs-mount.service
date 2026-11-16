@@ -1,0 +1,22 @@
+[Unit]
+Description=SeaweedFS FUSE mount - the FUSE gateway exported by NFS-Ganesha
+Documentation=https://github.com/seaweedfs/seaweedfs
+After=seaweedfs-filer.service seaweedfs-volume.service
+Requires=seaweedfs-filer.service
+BindsTo=seaweedfs-filer.service
+
+[Service]
+Type=simple
+User=ys1000
+Group=ys1000
+WorkingDirectory=/home/ys1000/seaweedfs
+ExecStart=/home/ys1000/seaweedfs/scripts/mount.sh
+ExecStop=/home/ys1000/seaweedfs/scripts/unmount.sh
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+StandardOutput=append:/home/ys1000/seaweedfs/logs/mount.log
+StandardError=append:/home/ys1000/seaweedfs/logs/mount.log
+
+[Install]
+WantedBy=multi-user.target
