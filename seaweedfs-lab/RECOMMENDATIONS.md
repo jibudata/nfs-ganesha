@@ -305,7 +305,7 @@ MDCACHE {
 | 3 | 监控 volume `.dat` 的增长速率 vs NFS WRITE 速率；两者背离 = 挂载僵死**或导出已失效**。WRITE 速率取自 Prometheus：`http://192.168.3.146:32000/metrics`（远端节点用主机 IP，别用 `127.0.0.1`），抓取要 `curl -o file` 再解析 | **P0** |
 | 4 | **重启 FUSE 挂载服务后必须重启 Ganesha**（`systemctl restart seaweedfs-mount*.service` 之后紧跟 `systemctl restart ganesha`）；否则导出静默失效：写成功、客户端无报错、字节全部丢失 | **P0** |
 | 5 | 客户端保持 `hard` + `sync`；不要为了"响应性"改 `soft`/`softerr` | P1 |
-| 6 | 客户端 fio/应用用 **≥8 MiB 块**（若走 O_DIRECT，收益 4.1×），或**多文件并发**（收益 1.64×） | P1 |
+| 6 | 客户端 fio/应用用 **≥8 MiB 块**（若走 O_DIRECT，收益 4.1×），或**多文件并发**（收益 1.64×）。**走 NFS 的 O_DIRECT 负载尤其要放大块**：1 MiB 时 NFS+Ganesha 前端吃掉整条路径的 **79%**，8 MiB 时降到 56%；buffered 负载不受影响（见 §6.2） | P1 |
 | 7 | 按 §3.2/§3.4 配核与内存；`weed mount -writeBufferSizeMB` 是最大的一项 | P1 |
 | 8 | MDCACHE 保持默认；确要调就用 §4.4 那一组，并把 MDCACHE 当独立变量测 | P2 |
 | 9 | 所有 fio/应用在 FUSE 后端上用 **`fallocate=none`**；预分配在这个后端上不是免费的（见 §5.1） | P1 |
@@ -377,8 +377,104 @@ ext4:            truncate -s 4G  ->  st_size = 4 GiB, st_blocks = 0           �
 
 ---
 
-## 6. 原始数据
+## 6. 封装方式是不是瓶颈？NFS + Ganesha 前端值多少钱？
 
+这一节回答两个问题：**把存储后端装进 Docker / Kubernetes 值不值**，以及
+**NFS + Ganesha 这一层前端在写路径上占多少**。
+
+### 6.1 三种封装：同一个负载，三条数据路径
+
+Ganesha 和 FUSE 网关在三个臂里**完全相同**（都在宿主），唯一变量是存储后端：
+
+```
+裸机臂：    NFS 客户端 → Ganesha → FUSE(宿主) → filer(宿主) → volume(宿主 NVMe)
+Docker 臂： NFS 客户端 → Ganesha → FUSE(宿主) → filer(容器) → volume(容器)
+K8s 臂：    NFS 客户端 → Ganesha → FUSE(宿主) → filer(pod)  → volume(pod)
+```
+
+实测：3 轮交错、每轮轮转臂顺序、每个用例强制校验落盘、每个用例前后查三服务健康。
+**36/36 用例全部落盘，零 void**（SIZE=128M，MiB/s 中位数）：
+
+| case | 裸机 | Docker | Kubernetes | 极差 |
+|---|---|---|---|---|
+| buf1M（1M buffered） | 643 | 727 | 776 | +21% |
+| buf8job（1M buffered × 8 job） | 1049 | 934 | 941 | −11% |
+| odirect1M（1M O_DIRECT） | 205 | 218 | 229 | +12% |
+| odirect8M（8M O_DIRECT） | 727 | 727 | 749 | +3% |
+
+**结论：三条臂落在同一条噪声带内。** 极差最大的一格（buf1M，+21%）也只等于
+同一用例在不同轮之间的抖动（裸机这一格本身就在 582..740 之间跑），
+而 Ganesha WRITE 延迟中位数分别是 11.9 / 12.0 / 14.7 ms，CPU-s/GiB 全部落在
+6.4–8.5。
+
+**⇒ 封装方式不是写路径瓶颈。** 把 SeaweedFS 装进容器或 Kubernetes **不花吞吐**，
+换来的是部署与弹性的自由度。这条结论只在**存储面**成立；K8s 臂另有一份独立成本：
+MetalLB 固定 IP、固定 `loadBalancerIP`、以及"客户端将来要用的那个地址必须是登记地址"
+这一整套约束（`LAB-CONVENTIONS.md` R19–R23）。
+
+### 6.2 第四形态：把前端拿掉，量存储路径本身
+
+第四形态把 FUSE 网关**放进 pod**，fio 就在**同一个 pod** 里写它：
+
+```
+fio → FUSE(pod) → filer(pod) → volume(pod)      （没有 NFS，没有 Ganesha）
+```
+
+它不是"第四个点"，而是**同一系列去掉前端之后的样子**。K8s 臂与它写进**同一套
+Kubernetes 存储面**、用**同一套 FUSE 网关配置**，两者之间差的**就是 NFS + Ganesha
+前端的成本**：
+
+| case | K8s 臂 + NFS/Ganesha | 第四形态（无前端） | 前端成本 |
+|---|---|---|---|
+| buf1M | 776 | 1016 | 1.31×（占路径 24%） |
+| buf8job | 941 | 1000 | 1.06×（占路径 6%） |
+| **odirect1M** | 229 | **1085** | **4.74×（占路径 79%）** |
+| **odirect8M** | 749 | **1684** | **2.25×（占路径 56%）** |
+
+（MiB/s 中位数，各 3 轮；第四形态 12/12 用例全部落盘、零 void。）
+
+**两条结论：**
+
+1. **buffered 写几乎不花前端的钱。** 8 job 并发时前端只占路径的 6%——因为
+   聚合之后 fsync 被摊薄了。这和 §1.3「并发比块大小更能提吞吐」是同一件事的
+   两面：并发既抬吞吐，也把前端的成本摊薄。
+
+2. **O_DIRECT 写的前端成本高得离谱：1 MiB 块时前端吃掉整条路径的 79%。**
+   原因在 §1.2 已经量过：O_DIRECT 的每个 WRITE 都是 stable write ⇒ 每个 WRITE
+   一次 fsync（`file.c:1399`），1 MiB 时 fsync 完全串行。把块放大到 8 MiB 让多个
+   fsync 重叠，前端成本立刻从 79% 降到 56%。
+
+**⇒ 部署建议：走 NFS 的 O_DIRECT 负载，要么把块放大到 ≥8 MiB，要么放弃 O_DIRECT。**
+这不是"XFS/SeaweedFS 谁更快"的问题，而是**协议层每个 WRITE 都要 fsync 一次**这件事
+在 Ganesha 上被串行化了。buffered 负载不受影响。
+
+### 6.3 这两条结论的适用边界（必须交代）
+
+- 第四形态与三臂**不是同一个进程内交错**的：前者是 01:52–01:57 的窗口，后者是
+  01:58–02:10 的窗口，同一台宿主、同一天、同一套 K8s 存储面，但**是两个中位数相减，
+  不是受控 A/B**。因此只有**差距大的时候才算发现**：4.74× 是发现，1.06× 是噪声。
+- 宿主只有 62 GiB RAM、swap 已占满，上面还跑着 3 台 KVM 虚机和 KIND 集群。
+  **绝对吞吐只宜同窗口相对比较**，不要把这些数字当成容量规划依据。
+- 第四形态的 fio 在容器里（Ubuntu 24.04 的 3.36 包），三臂的 fio 在宿主（自建的
+  3.36）。**上游版本相同**，但不是同一个二进制；`build-image.sh` 会校验版本一致。
+- 单轮不可信：同一用例在同一宿主两次跑出过 1143 和 780 MiB/s。所有数字都是 3 轮中位数，
+  且每轮轮转用例顺序。
+
+**怎么复现：**
+
+```bash
+ROUNDS=3 SIZE=128M CONC_SIZE=16M bash scripts/arm-compare.sh   # 三臂
+ROUNDS=3 bash scripts/k8s-fuse-fio.sh                            # 第四形态
+bash scripts/render-arm-compare.sh                               # 三臂表
+bash scripts/render-front-end-cost.sh                            # 联合表
+```
+
+---
+
+## 7. 原始数据
+
+- `results/arm-compare-3arms.csv` —— 三臂对比 36 个用例（吞吐 / clat(ms) / Ganesha 写延迟 / 落盘校验 / 5 进程 CPU）
+- `results/k8s-fuse-fio-inpod.csv` —— 第四形态 12 个用例（吞吐 / clat(ms) / 落盘校验）
 - `results/final-bench.csv` —— 本轮全部 10 个用例（吞吐 / clat / Ganesha 写延迟 / 落盘校验 / 5 进程 CPU / RSS）
 - `results/sustained-v2.csv` —— 6 GiB 持续写 NVMe vs HDD（**含 `landed_mib` 落盘校验**）
 - `results/ssd-vs-hdd-sustained-VOID-dat_delta-was-0.csv` —— **作废**：早期持续写数据，`dat_delta_mib` 为 0（字节没落盘），保留作证据
@@ -388,3 +484,5 @@ ext4:            truncate -s 4G  ->  st_size = 4 GiB, st_blocks = 0           �
 - `scripts/final-bench.sh` —— 本轮基准脚本（每个用例强制校验落盘）
 - `scripts/recover-fuse.sh` —— 挂载僵死自愈 + 落盘校验
 - `scripts/where-does-ganesha-write.sh` —— 定位 Ganesha 实际写入位置
+- `scripts/arm-compare.sh` / `scripts/render-arm-compare.sh` —— 三臂对比矩阵与渲染
+- `scripts/k8s-fuse-fio.sh` / `scripts/render-front-end-cost.sh` —— 第四形态矩阵与「前端成本」联合表

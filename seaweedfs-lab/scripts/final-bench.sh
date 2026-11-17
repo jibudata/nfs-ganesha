@@ -13,6 +13,10 @@
 # =====================================================================
 set -uo pipefail
 
+# R27: fio_clat_ms - the unit is read out of fio's section header and the
+# value is normalised to milliseconds.  See LAB-CONVENTIONS.md R27.
+. "$(dirname "$0")/lib-nfslab.sh"
+
 CSV=${CSV:-/home/ys1000/seaweedfs/logs/final-bench.csv}
 FUSE_MNT=/home/ys1000/seaweedfs/mnt-nvme-fresh
 DATA_DIR=/home/ys1000/seaweedfs/data-nvme-fresh
@@ -92,8 +96,10 @@ run_case() { # <label> <layer> <bs> <size> <direct> <njobs> [fio args...]
   scrape /tmp/fb-ma.txt
 
   local bw=$(grep -oE 'bw=[0-9.]+[KMG]iB/s' /tmp/fb-$label.out | tail -1 | cut -d= -f2)
-  local clat=$(grep -oE 'clat \((msec|usec|nsec)\):.*avg=[0-9.]+' /tmp/fb-$label.out | grep -oE 'avg=[0-9.]+' | head -1 | cut -d= -f2)
-  local cunit=$(grep -oE 'clat \((msec|usec|nsec)\)' /tmp/fb-$label.out | head -1 | tr -d 'clat ():')
+  # R27: the unit is read out of the header and the value is normalised to
+  # milliseconds - "tr -d 'clat ():'" turns "usec" into "use".
+  local cunit=ms
+  local clat=$(fio_clat_ms /tmp/fb-$label.out)
   local err=$(grep -oE 'err= *[0-9]+' /tmp/fb-$label.out | grep -oE '[0-9]+' | awk '{s+=$1} END{printf "%d", s+0}')
   local iob=$(grep -oE 'io=[0-9.]+[KMG]iB' /tmp/fb-$label.out | tail -1 | cut -d= -f2)
   local mib=0
@@ -148,7 +154,7 @@ run_case() { # <label> <layer> <bs> <size> <direct> <njobs> [fio args...]
   sleep 2
 }
 
-echo "label,layer,bs,njobs,direct,BW,clat_avg,clat_unit,ganesha_wlat_ms,elapsed_s,wrote_mib,landed_mib,ganesha_cpu_s,mount_cpu_s,volume_cpu_s,filer_cpu_s,master_cpu_s,total_cpu_s,total_per_gib,g_ganesha,g_mount,g_volume,g_filer,g_master,rss_total_mb,io_err,fio_rc" > "$CSV"
+echo "label,layer,bs,njobs,direct,BW,clat_avg_ms,clat_unit,ganesha_wlat_ms,elapsed_s,wrote_mib,landed_mib,ganesha_cpu_s,mount_cpu_s,volume_cpu_s,filer_cpu_s,master_cpu_s,total_cpu_s,total_per_gib,g_ganesha,g_mount,g_volume,g_filer,g_master,rss_total_mb,io_err,fio_rc" > "$CSV"
 echo "### final bench: $(date -Is) size=$SIZE ###"
 
 NM="/mnt/fb-$$"

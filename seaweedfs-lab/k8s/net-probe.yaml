@@ -1,0 +1,43 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: k8s-net-probe
+  namespace: seaweedfs
+spec:
+  restartPolicy: Never
+  containers:
+    - name: probe
+      image: seaweedfs-lab:4.54
+      imagePullPolicy: Never
+      command:
+        - /bin/bash
+        - -c
+        - |
+          set -u
+          echo "--- my addresses"
+          hostname -i
+          echo "--- can I reach the MetalLB addresses?"
+          for ep in 172.18.255.50:19340 172.18.255.51:19342 172.18.255.52:19344; do
+            host=${ep%:*}; port=${ep##*:}
+            printf "%-24s " "$ep"
+            if (exec 3<>"/dev/tcp/$host/$port") 2>/dev/null; then
+              exec 3<&- 3>&-
+              echo "TCP OK"
+            else
+              echo "TCP FAILED"
+            fi
+          done
+          echo "--- the ClusterIP service DNS"
+          getent hosts seaweedfs-filer.seaweedfs.svc.cluster.local 2>&1 | head -2
+          for port in 19344 29344; do
+            printf "filer DNS :%-6s " "$port"
+            if (exec 3<>"/dev/tcp/seaweedfs-filer.seaweedfs.svc.cluster.local/$port") 2>/dev/null; then
+              exec 3<&- 3>&-
+              echo "TCP OK"
+            else
+              echo "TCP FAILED"
+            fi
+          done
+          echo "--- the master's view (from inside this pod)"
+          printf 'cluster.status\nexit\n' | timeout 25 /usr/local/bin/weed shell \
+            -master=172.18.255.50:19340 2>&1 | head -10

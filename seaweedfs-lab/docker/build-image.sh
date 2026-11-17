@@ -6,7 +6,19 @@
 # The image COPIES the lab host's own binary, so the containerised backend is
 # the exact same build as the bare-metal one (4.54, commit 5ef99c1d).
 #
-#   usage: bash build-image.sh [image:tag]
+#   usage: bash build-image.sh [image:tag] [--fio]
+#
+# Two variants:
+#
+#   (plain)  the storage plane: SeaweedFS only, debian:bookworm-slim.
+#            Used by the Docker arm and by the Kubernetes storage plane.
+#   --fio    the pod that mounts FUSE and writes with fio: SeaweedFS plus
+#            fio, on the host's own distro (ubuntu:24.04) so the version is
+#            the host's.  The image's fio is the Ubuntu package (3.36), not
+#            the host's local build: the local build links against ~70
+#            shared libraries to enable the gluster/ceph/rbd/nbd backends,
+#            and this benchmark uses none of them.  The VERSION is what
+#            has to match, and it is checked below.
 #
 # Run it on the lab host.  The build context is a scratch directory under
 # the lab root; nothing is deleted at the end (the desktop's delete guard
@@ -14,23 +26,51 @@
 # =====================================================================
 set -euo pipefail
 
-IMAGE=${1:-seaweedfs-lab:4.54}
+VARIANT=plain
+IMAGE=""
+case "${2:-}" in
+  "")    IMAGE=${1:-seaweedfs-lab:4.54} ;;
+  --fio) VARIANT=fio; IMAGE=${1:-seaweedfs-lab:4.54-fio} ;;
+  *) echo "usage: $0 [image:tag] [--fio]" >&2; exit 2 ;;
+esac
+
 LAB_ROOT=${LAB_ROOT:-/home/ys1000/seaweedfs}
-CONTEXT="$LAB_ROOT/docker-build"
 HOST_BIN=${HOST_BIN:-/usr/local/bin/weed}
+HOST_FIO=${HOST_FIO:-/home/ys1000/seaweedfs/tools/fio}
+HOST_FIO_LIB=${HOST_FIO_LIB:-/home/ys1000/seaweedfs/tools/lib}
 HERE=$(cd "$(dirname "$0")" && pwd)
 
-echo "=== build $IMAGE ==="
+echo "=== build $IMAGE (variant: $VARIANT) ==="
 
 if [ ! -x "$HOST_BIN" ]; then
   echo "ERROR: $HOST_BIN is not there; this script has to run on the lab host" >&2
   exit 2
 fi
 
-mkdir -p "$CONTEXT"
-cp "$HOST_BIN" "$CONTEXT/weed"
-cp "$HERE/Dockerfile" "$CONTEXT/Dockerfile"
-cp "$HERE/entrypoint.sh" "$CONTEXT/entrypoint.sh"
+# The version string, and nothing else.  fio prints it on stdout and a
+# copyright banner on stderr; in a pipe the banner can land first, so
+# grep for the token instead of taking the first line - the same trap
+# "weed version" has, and the reason build_id() below exists.
+fio_version() {
+  local raw
+  raw=$(LD_LIBRARY_PATH="$HOST_FIO_LIB" "$1" --version 2>&1 || true)
+  printf '%s\n' "$raw" | grep -oE 'fio-[0-9]+(\.[0-9]+)*' | sed -n '1p' || true
+}
+
+if [ "$VARIANT" = "fio" ]; then
+  CONTEXT="$LAB_ROOT/docker-build-fio"
+  mkdir -p "$CONTEXT"
+  cp "$HOST_BIN" "$CONTEXT/weed"
+  cp "$HERE/Dockerfile-fio" "$CONTEXT/Dockerfile"
+  cp "$HERE/../k8s/run-fuse-fio.sh" "$CONTEXT/run-fuse-fio.sh"
+  echo "  fio:     $(fio_version "$HOST_FIO")  (host)"
+else
+  CONTEXT="$LAB_ROOT/docker-build"
+  mkdir -p "$CONTEXT"
+  cp "$HOST_BIN" "$CONTEXT/weed"
+  cp "$HERE/Dockerfile" "$CONTEXT/Dockerfile"
+  cp "$HERE/entrypoint.sh" "$CONTEXT/entrypoint.sh"
+fi
 
 # The Dockerfile and the binary must be the same build: check the version
 # string of the binary that is about to be baked into the image.
@@ -70,6 +110,25 @@ if [ -z "$host_id" ] || [ "$host_id" != "$image_id" ]; then
   exit 1
 fi
 echo "  ok     same build in the host and in the image ($host_id)"
+
+# For the fio variant the version of fio matters just as much: the
+# benchmark compares numbers with the other arms, and a different fio
+# would make the comparison meaningless.  The image's fio is the Ubuntu
+# package and the host's is a local build, but both must report the same
+# fio-X.Y.
+if [ "$VARIANT" = "fio" ]; then
+  host_fio=$(fio_version "$HOST_FIO")
+  image_fio=$(docker run --rm --entrypoint /usr/bin/fio "$IMAGE" --version 2>&1 \
+              | grep -oE 'fio-[0-9]+(\.[0-9]+)*' | sed -n '1p' || true)
+  echo "  fio:     host=$host_fio image=$image_fio"
+  if [ -z "$host_fio" ] || [ "$host_fio" != "$image_fio" ]; then
+    echo "ERROR: the image's fio differs from the host's" >&2
+    echo "  host:  $host_fio" >&2
+    echo "  image: $image_fio" >&2
+    exit 1
+  fi
+  echo "  ok     same fio in the host and in the image ($host_fio)"
+fi
 
 docker images "$IMAGE" --format '  image: {{.Repository}}:{{.Tag}} {{.Size}}'
 echo "build done"

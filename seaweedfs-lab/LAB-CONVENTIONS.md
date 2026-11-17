@@ -135,6 +135,57 @@ second form is the bug.
 **R8 — Check fio's exit code.** A non-zero rc with a plausible-looking throughput
 happened (fio printed `Bad option` and exited).
 
+**R27 — A unit parsed out of fio's output comes out of the parentheses, and every
+latency column in a CSV carries the same unit.** fio picks the unit from the
+magnitude and prints it in the section header: `clat (usec):`. Stripping the header
+with `tr -d 'clat ():'` is wrong — `tr` deletes *every character in the set*, so
+`clat (usec):` comes out as `use` and `clat (msec):` as `mse`. The three-arm
+comparison shipped a CSV whose `clat_unit` column said `nse`, `mse` and `use`: three
+different runs of the same case had their latencies in three different units, none
+of them recoverable from the file, and a reader could not tell msec from usec.
+
+Take the unit out of the parentheses and convert, so the number in the CSV is always
+the same unit:
+
+```bash
+# lib-nfslab.sh provides this; the pod-side copy lives in k8s/run-fuse-fio.sh
+clat_ms=$(fio_clat_ms "$fio_out")
+```
+
+The rule is not only about the unit string. A CSV column of latencies with no unit
+next to it is a unit waiting to be misread: `3386551.40` is 3.4 seconds in one run
+and 3.4 milliseconds in another. Normalise at the point of parsing and name the
+column accordingly (`clat_avg_ms`).
+
+**R29 — A median is the middle of the SORTED values.** The rows arrive in round
+order, not in bandwidth order, so "take the middle element" is not the median. The
+fourth-form renderer did exactly that and reported three rounds of 1000, 692 and
+1008 MiB/s as **692** — which made the FUSE-in-a-pod arm look *36% slower* than
+the NFS path, the opposite of the truth. The noise was being read as a result.
+
+Sort before you take the middle, and make the sort part of the same awk program so
+it cannot be forgotten:
+
+```awk
+function median(a, n,   i, j, t) {
+  for (i = 2; i <= n; i++) {                 # insertion sort
+    t = a[i]
+    for (j = i - 1; j >= 1 && a[j] > t; j--) a[j + 1] = a[j]
+    a[j + 1] = t
+  }
+  if (n % 2) return a[(n + 1) / 2]
+  return (a[n / 2] + a[n / 2 + 1]) / 2
+}
+```
+
+Two related traps in the same renderer, both worth stating because the file's own
+header promised otherwise:
+- **a void case is counted but never folded into a median.** The rows are sorted by
+  bandwidth, so a void row with a high number lands right next to the median and
+  drags it up.
+- **a per-group counter has to be reset when the group changes.** A `voids` counter
+  that is added to but never reset accumulates across every group in the file.
+
 ## 4. CPU accounting
 
 **R9 — Bound the arithmetic.** CPU seconds consumed cannot exceed
@@ -338,3 +389,118 @@ the build id inside the image is the same one.
 - 任何在宿主上杀进程的操作:先确认容器里没有同名进程(R17)。
 
 
+## 10. The Kubernetes arm
+
+The Kubernetes arm runs the storage plane as three pods in a KIND cluster
+(`kindest/node:v1.37.0`), with the FUSE gateway and Ganesha still on the
+host. The addressing is the part that is easy to get wrong.
+
+**R19 — A pod must advertise the address its CLIENT will use.**
+`weed mount` does not read chunks through the filer. It asks the filer where
+a chunk lives, and the filer answers with the volume server's REGISTERED
+address:
+
+```
+weed/filer/reader_at.go:123     targetUrl := "http://" + volumeServerAddress + "/" + fileId
+weed/topology/topology_info.go:104   Url: dn.Url()
+weed/topology/data_node.go:383       dn.Url() = JoinHostPort(dn.Ip, dn.Port)
+```
+
+`dn.Ip` is the volume server's `-ip`. So the address the host's FUSE mount
+fetches a chunk from is whatever `-ip` says — with a pod IP that address is
+not routable from the host. The manifests therefore set `-ip` to the
+**LoadBalancer address** and `-ip.bind=0.0.0.0`, because SeaweedFS keeps the
+advertised address and the bind address apart:
+
+```
+weed/command/volume.go:219   -ip        the address the server REGISTERS
+weed/command/volume.go:222   -ip.bind   the address it BINDS to
+```
+
+**R20 — The LoadBalancer address must be fixed, not auto-assigned.**
+The pod's `-ip` is written into the manifest, so the address has to be known
+before the pod starts. `spec.loadBalancerIP` pins it, and `scripts/lint-k8s-manifest.sh`
+(R20/R22) rejects a Service without one, and a workload whose `-ip` is not
+the address its Service hands out.
+
+**R21 — The Service must publish the gRPC port too.**
+Same rule as R14, on the Service side: a client that is given the HTTP port
+dials http + 10000 for gRPC (`weed/pb/grpc_client_server.go:548`
+`ServerToGrpcAddress`). A LoadBalancer Service that publishes only the HTTP
+port makes the mount fail on the first gRPC call.
+
+**R22 — The master does not keep a filer registry.**
+There is no filer list in the master's topology: the filer is a CLIENT of
+the master, not a member of its topology. A check that looks for the filer
+in the master's status page can only ever fail. What the filer does need is
+the master — it allocates every chunk through it — so that is what gets
+checked, from inside the filer pod.
+
+**R23 — The node may be a container, so the .dat size is measured from
+inside the pod.**
+A local-path PersistentVolume is a hostPath on the NODE. In a KIND cluster
+the node is itself a Docker container, so that path does not exist on the
+host: a landing check that looks for it finds nothing and reports "the
+bytes did not land" for a write that landed perfectly well — a false
+negative, and the one thing the check must not produce.
+`scripts/k8s-volume-datsize.sh` measures it from inside the volume pod.
+
+**R28 — A FUSE mount may live in a container only when the thing that writes
+to it lives there too.**
+A mount created inside a container does not propagate back to the host: it
+lands in a different peer group (`shared:1944` in the container vs `shared:1`
+on the host), so the host sees a plain directory and the data goes into the
+host's own filesystem. That is why the Docker and Kubernetes arms keep the
+FUSE gateway on the host — Ganesha runs there and has to reach the mount.
+
+The fourth shape is the exception, and the exception is the rule: **the pod
+that mounts FUSE also runs the fio that writes to it**, so the mount never
+crosses a mount namespace at all. The writer and the mount are in the same
+mount namespace, therefore the same one.
+
+Two things follow from it, and both are easy to get wrong:
+- "is it mounted" must check the **filesystem type**, not that the path is in
+  `/proc/mounts`. A directory bind-mounted onto itself is in `/proc/mounts`
+  as ext4, and a script that believes it is a FUSE mount writes to the
+  host's disk and reports a landing failure.
+- the landing measurement still has to come from **outside** the pod: the pod
+  that writes cannot see the volume server's data directory. Measure it from
+  the host, from inside the volume pod (`scripts/k8s-volume-datsize.sh`).
+
+**Apply when:**
+- 把挂载和写它的负载放进同一个容器/pod:确认 fstype 是 `fuse.seaweedfs`，不是 ext4。
+- 挂载"看起来在"但数据没到后端:先比对 volume `.dat` 的**增量**与写入字节数。
+
+## 11. The host is also the client — and a wedged write path takes the host with it
+
+**R24 — A leftover NFS client mount is a feedback loop, not litter.**
+The lab host is BOTH the NFS server and an NFS client: the benchmarks mount
+the server's own exports. With `hard` mounts a leftover client retries
+forever (`nfs: server 192.168.3.146 not responding, still trying`), and each
+retry is another request for the server to answer. Eleven such mounts were
+left behind by a heal test on 2026-11-16. `scripts/cleanup-stale-nfs-mounts.sh`
+removes the self-mounts, and `scripts/arm-compare.sh` runs it before it
+measures anything.
+
+**R25 — A dead backend must be caught BEFORE the case, not after it.**
+On 2026-11-16 the Docker arm's filer died. The FUSE mount kept retrying a
+connection that would never come back, the write never completed, the fio
+sat in D state — and the host became unusable: load average 98 on 16 cores,
+and `ps` stopped working. The cause was not a slow disk: the host ran out
+of memory (swap 7/7 GiB), the Go runtime's scavenger started calling
+`madvise`, and a write path held `mmap_lock` in write mode, so every
+`/proc/<pid>/cmdline` read — and therefore every `ps` and `pgrep -f` — blocked
+behind it. `arm-compare.sh` now asks each arm's three services for their
+health page before every case, and again afterwards.
+
+**R26 — A container must watch every service it starts.**
+The Docker entrypoint watched the master and the volume server but not the
+filer, so a dead filer left the container "Up" and serving nothing. The
+entrypoint now watches all three and exits if any of them dies, which lets
+Docker's `restart: unless-stopped` bring the stack back.
+
+**Apply when:**
+- 任何"K8s 臂写不进去"的排查:先看 master 登记的 volume 地址是不是 LoadBalancer 地址(R19)。
+- 任何"挂载是活的但写不动"的排查:先查挂载点的 filer/volume/master 三个 /healthz(R25)。
+- 任何"整机 ps 卡住"的排查:先看 dmesg 有没有 `blocked for more than N seconds`,
+  再看 `memory.events` 的 oom_kill 与 free -m 的 swap(R24/R25)。

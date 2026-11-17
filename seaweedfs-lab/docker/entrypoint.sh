@@ -95,24 +95,47 @@ wait_port "$IP" 8081 60 || { log "FATAL: the volume server did not come up"; tai
 
 # ---- filer -------------------------------------------------------------
 log "starting filer"
+# -defaultStoreDir points the filer's own LevelDB - the directory tree -
+# at the mounted volume.  Without it the default is "." (the process's
+# working directory), so the tree lands in the container's writable
+# layer: not on the NVMe device, and gone when the container is
+# recreated.  The bare-metal arm keeps the same store in
+# /home/ys1000/seaweedfs/filerldb2, which is on the NVMe and persistent,
+# so leaving it at the default would make this arm measure something
+# the other arms do not.  See weed/command/filer.go:145 and :400.
 "$SW_BIN" filer \
   -ip="$IP" -ip.bind="$IP" \
   -port=8888 -port.grpc=18888 \
   -master="$IP:9333" \
+  -defaultStoreDir=/data/ldb \
   -collection="" > "$LOGDIR/filer.log" 2>&1 &
 FILER_PID=$!
 wait_port "$IP" 8888 60 || { log "FATAL: the filer did not come up"; tail -20 "$LOGDIR/filer.log"; exit 1; }
 
 # ---- stay alive while the storage plane is up --------------------------
-# The container's job is to serve the storage plane.  It stops when the
-# master or the volume server dies - a container that answers "am I
-# running?" while serving nothing is worse than one that is down.
+# The container's job is to serve the storage plane.  It stops when ANY
+# of the three services dies - a container that answers "am I running?"
+# while serving nothing is worse than one that is down.
+#
+# THE FILER HAS TO BE WATCHED TOO.  It was not, and that is how a dead
+# filer went unnoticed for hours on 2026-11-16: the master and the
+# volume server were still up, so the container stayed "Up", the host's
+# FUSE mount kept retrying a connection that would never come back, and
+# every write through that export blocked forever.  The host's load
+# average went to 98 and `ps` stopped working on it.
 trap 'log "stopping"; kill "$FILER_PID" "$VOLUME_PID" "$MASTER_PID" 2>/dev/null; wait' TERM INT
 
-while kill -0 "$MASTER_PID" 2>/dev/null && kill -0 "$VOLUME_PID" 2>/dev/null; do
+while true; do
+  for svc in "master:$MASTER_PID" "volume:$VOLUME_PID" "filer:$FILER_PID"; do
+    svc_name=${svc%%:*}
+    svc_pid=${svc##*:}
+    if ! kill -0 "$svc_pid" 2>/dev/null; then
+      log "the $svc_name exited; the storage plane is no longer complete"
+      tail -20 "$LOGDIR/$svc_name.log" 2>/dev/null
+      kill "$FILER_PID" "$VOLUME_PID" "$MASTER_PID" 2>/dev/null
+      wait
+      exit 1
+    fi
+  done
   sleep 2
 done
-
-log "the storage plane exited"
-tail -30 "$LOGDIR/volume.log"
-exit 1

@@ -1,0 +1,51 @@
+# SeaweedFS + fio, for the pod that mounts FUSE and writes with fio.
+#
+# WHY A SEPARATE IMAGE, AND WHY ubuntu:24.04
+#
+# The storage plane's image (Dockerfile) is debian:bookworm-slim and
+# carries only SeaweedFS.  This one carries fio as well, because the pod
+# that mounts FUSE writes to the mount with fio.
+#
+# The base is ubuntu:24.04 - the HOST's distro - because the host's fio
+# is fio-3.36 and so is Ubuntu 24.04's package (3.36-1ubuntu0.1).  The
+# same upstream version on both sides means the same write path:
+# ioengine=libaio, direct=, fsync, scramble_buffers.
+#
+# The one difference, stated plainly: the host's fio is a LOCAL build with
+# the gluster, ceph, rbd and nbd backends enabled, and it links against
+# its own copies of libgfapi/libgfrpc/libgfxdr/libglusterfs/libnbd.  The
+# Ubuntu package is built without those backends, and that is what makes
+# this image small and its dependency set boring.  None of those backends
+# is used by this benchmark: the FUSE mount is a filesystem, not an object
+# store, and the write goes through libaio.
+#
+# Copying the host's fio and its ~70 shared libraries into an image would
+# have been possible (it is the same distro), but it drags in gluster,
+# ceph, rbd, boost and libpmem to reproduce a back end that the
+# measurement never touches.  The version is the thing that matters, and
+# build-image.sh checks it: the image's fio must report the SAME version
+# as the host's.
+#
+# The SeaweedFS binary is statically linked, so the base image makes no
+# difference to the storage engine itself.
+#
+# `user_allow_other` in /etc/fuse.conf is needed because the mount uses
+# -allowOthers, and that option is refused by fusermount unless the file
+# says so.
+FROM ubuntu:24.04
+
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends fuse3 ca-certificates fio \
+ && apt-get clean \
+ && find /var/lib/apt/lists -mindepth 1 -delete \
+ && printf 'user_allow_other\n' > /etc/fuse.conf \
+ && fio --version
+
+COPY weed /usr/local/bin/weed
+COPY run-fuse-fio.sh /work/run-fuse-fio.sh
+RUN chmod +x /usr/local/bin/weed /work/run-fuse-fio.sh \
+ && weed version
+
+ENV SW_BIN=/usr/local/bin/weed
+ENV FIO=/usr/bin/fio
+WORKDIR /work

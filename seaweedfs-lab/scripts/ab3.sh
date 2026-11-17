@@ -17,6 +17,10 @@
 # =====================================================================
 set -uo pipefail
 
+# R27: fio_clat_ms - the unit is read out of fio's section header and the
+# value is normalised to milliseconds.  See LAB-CONVENTIONS.md R27.
+. "$(dirname "$0")/lib-nfslab.sh"
+
 CSV=${CSV:-/home/ys1000/seaweedfs/logs/ssd-vs-hdd.csv}
 METRICS=http://127.0.0.1:32000/metrics
 FIO=/usr/local/bin/fio
@@ -115,8 +119,10 @@ run_case() {
   local bw=$(grep -oE 'bw=[0-9.]+[KMG]iB/s' /tmp/ab3-$label-$tier.out 2>/dev/null | tail -1 | cut -d= -f2)
   [ -z "$bw" ] && bw=$(grep -oE 'BW=[0-9.]+[KMG]iB/s' /tmp/ab3-$label-$tier.out 2>/dev/null | head -1 | cut -d= -f2)
   local iops=$(grep -oE 'IOPS=[0-9.]+[kKmM]?' /tmp/ab3-$label-$tier.out 2>/dev/null | cut -d= -f2 | awk '{v=$0;m=1; if(v~/[kK]$/){m=1000;v=substr(v,1,length(v)-1)} else if(v~/[mM]$/){m=1000000;v=substr(v,1,length(v)-1)} s+=v*m} END{printf "%d", s+0}')
-  local cunit=$(grep -oE 'clat \((msec|usec|nsec)\)' /tmp/ab3-$label-$tier.out 2>/dev/null | head -1 | tr -d 'clat ():')
-  local clat=$(grep -oE 'clat \((msec|usec|nsec)\):.*avg=[0-9.]+' /tmp/ab3-$label-$tier.out 2>/dev/null | grep -oE 'avg=[0-9.]+' | head -1 | cut -d= -f2)
+  # R27: the unit is read out of the header and the value is normalised to
+  # milliseconds - "tr -d 'clat ():'" turns "usec" into "use".
+  local cunit=ms
+  local clat=$(fio_clat_ms /tmp/ab3-$label-$tier.out)
   local err=$(grep -oE 'err= *[0-9]+' /tmp/ab3-$label-$tier.out 2>/dev/null | grep -oE '[0-9]+' | awk '{s+=$1} END{printf "%d", s+0}')
 
   local wsum=$(mdelta /tmp/ab3-mb.txt /tmp/ab3-ma.txt "nfsv4__op_latency_sum" 'op="WRITE"')
@@ -145,7 +151,7 @@ run_case() {
 }
 
 TIERS=("$@")
-echo "case,tier,MiB_s,IOPS,clat_avg,clat_unit,ganesha_avg_write_lat_ms,rpc_per_s,ganesha_cpu_s,mount_cpu_s,volume_cpu_s,elapsed_s,dat_delta_mib,io_err,fio_rc" > "$CSV"
+echo "case,tier,MiB_s,IOPS,clat_avg_ms,clat_unit,ganesha_avg_write_lat_ms,rpc_per_s,ganesha_cpu_s,mount_cpu_s,volume_cpu_s,elapsed_s,dat_delta_mib,io_err,fio_rc" > "$CSV"
 echo "### tiers: ${TIERS[*]} | reps=$REPS | timeout=${CASE_TIMEOUT}s | $(date -Is) ###"
 
 for rep in $(seq 1 $REPS); do

@@ -26,6 +26,18 @@ check_file() {
   fi
   echo "=== $f"
 
+  # R27 is a whole-file property: a CSV latency column must name its unit.
+  #      fio picks the unit from the magnitude and prints it in the header
+  #      ("clat (usec):"), so the unit has to be read out of the header and
+  #      the value normalised - and the column has to say which unit it is
+  #      in.  A bare "clat_avg" next to a number in an unknown unit is a
+  #      unit waiting to be misread.
+  local has_clat_ms=0
+  grep -qE 'clat_avg_ms|clat_ms' "$f" && has_clat_ms=1
+  if grep -qE 'clat_avg[,=]' "$f" && [ "$has_clat_ms" -eq 0 ]; then
+    fail "R27 a CSV latency column must name its unit (clat_avg_ms); a bare 'clat_avg' next to a number in an unknown unit is a unit waiting to be misread" "$f" 0
+  fi
+
   # R9 is a whole-file property: does the script bound its CPU arithmetic?
   local has_ticks=0 has_bound=0
   grep -qE 'cputicks|/proc/.*/stat.*\$14' "$f" && has_ticks=1
@@ -208,6 +220,14 @@ check_file() {
     # R8  a case must check fio's exit code
     if printf '%s' "$code" | grep -qE '(^|[[:space:]])fio[[:space:]]+\$?\{?jf'; then
       note "R8 capture fio's rc and treat non-zero as a failed case" "$f" "$n"
+    fi
+
+    # R27  a unit must not be recovered by DELETING characters: tr -d
+    #      removes every character in the set, so "clat (usec):" minus
+    #      "clat ():" is "use", not "usec".  Take the unit out of the
+    #      parentheses instead (fio_clat_ms in lib-nfslab.sh does).
+    if printf '%s' "$code" | grep -qE 'tr[[:space:]]+-d[^|]*(clat|msec|usec|nsec)'; then
+      fail "R27 do not strip a unit out of fio's output by deleting characters (tr -d 'clat ():' turns 'usec' into 'use'); take the unit out of the parentheses and normalise it" "$f" "$n"
     fi
 
     # R9  CPU accounting must be bounded by the machine's core count

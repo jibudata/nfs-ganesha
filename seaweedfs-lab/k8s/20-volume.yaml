@@ -1,0 +1,135 @@
+# =====================================================================
+# SeaweedFS volume server for the Kubernetes arm.
+#
+# This pod holds the DATA.  Its `-ip` is the LoadBalancer address, and
+# that is the address the host's FUSE mount will use to fetch chunks:
+#
+#   weed/topology/topology_info.go:104   Url: dn.Url()  ->  <this -ip>:<port>
+#   weed/filer/reader_at.go:123           http://<that address>/<fileId>
+#
+# If `-ip` were the pod IP, the host could not reach the chunks and the
+# arm would be measuring a different data path from the other two.  The
+# address is therefore FIXED, which pins this StatefulSet to one replica:
+# a second replica would register the same address and the master would
+# see two volume servers claiming one identity.  Scaling it means one
+# LoadBalancer address per replica.
+#
+# The flags are copied from the bare-metal scripts/volume.sh.  If a flag
+# is changed here, it has to be changed there too.
+#
+#   weed server -master=false -filer=false
+#     -ip=<registered address>  -ip.bind=<listen address>
+#     -volume.port / -volume.port.grpc
+#     -master.peers=<master address>   (grpc port is derived: http + 10000)
+#     -dir=<data directory>
+#     -volume.max=8  -volume.readMode=local  -dataCenter=dc1
+#
+# The data directory is a local-path PersistentVolume.  local-path puts
+# it under /var/lib/rancher/k3s/storage on the node's root filesystem,
+# which on this host is the NVMe device (/ is /dev/mapper/ubuntu--vg-
+# ubuntu--lv on nvme0n1p3).  That is the same device the bare-metal and
+# the Docker arms store their data on, so the storage medium is not a
+# variable between the arms.
+# =====================================================================
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: seaweedfs-volume
+  namespace: seaweedfs
+  labels:
+    app: seaweedfs-volume
+spec:
+  serviceName: seaweedfs-volume
+  # ONE replica: the registered address is fixed.  See the header.
+  replicas: 1
+  selector:
+    matchLabels:
+      app: seaweedfs-volume
+  template:
+    metadata:
+      labels:
+        app: seaweedfs-volume
+    spec:
+      terminationGracePeriodSeconds: 60
+      containers:
+        - name: volume
+          image: seaweedfs-lab:4.54
+          imagePullPolicy: Never
+          command:
+            - /usr/local/bin/weed
+            - server
+          args:
+            - -master=false
+            - -filer=false
+            # The address the master records, and the address the
+            # host's FUSE mount fetches chunks from.
+            - -ip=172.18.255.51
+            # Bind inside the pod; the LoadBalancer does the rest.
+            - -ip.bind=0.0.0.0
+            - -volume.port=19342
+            - -volume.port.grpc=29342
+            # The master.  The gRPC port is derived as http + 10000.
+            - -master.peers=172.18.255.50:19340
+            - -master.port=19340
+            - -master.port.grpc=29340
+            - -dir=/data/vol
+            - -volume.max=8
+            - -volume.readMode=local
+            - -dataCenter=dc1
+          ports:
+            - name: http
+              containerPort: 19342
+            - name: grpc
+              containerPort: 29342
+          volumeMounts:
+            - name: vol
+              mountPath: /data/vol
+          readinessProbe:
+            tcpSocket:
+              port: 19342
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          livenessProbe:
+            tcpSocket:
+              port: 19342
+            initialDelaySeconds: 20
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
+            limits:
+              cpu: "4"
+              memory: 8Gi
+  volumeClaimTemplates:
+    - metadata:
+        name: vol
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        storageClassName: standard
+        resources:
+          requests:
+            storage: 60Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: seaweedfs-volume
+  namespace: seaweedfs
+  labels:
+    app: seaweedfs-volume
+spec:
+  type: LoadBalancer
+  # The address the volume server registers, and the address the host's
+  # FUSE mount uses to read the chunks back.
+  loadBalancerIP: 172.18.255.51
+  selector:
+    app: seaweedfs-volume
+  ports:
+    - name: http
+      port: 19342
+      targetPort: 19342
+    - name: grpc
+      port: 29342
+      targetPort: 29342

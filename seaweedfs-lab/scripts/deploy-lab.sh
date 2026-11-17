@@ -155,6 +155,15 @@ done
 echo "--- verify: the host's linter agrees"
 ssh "$HOST" "cd $REMOTE_ROOT/scripts && bash lint-lab-script.sh *.sh ../docker/*.sh" | tail -1
 
+# The Kubernetes manifests have their own rules (the pod has to advertise
+# the address its client will use, the gRPC port has to be http + 10000 on
+# both sides, the LoadBalancer address has to be fixed).  They are checked
+# on the host, from the copy that was just deployed.
+echo "--- verify: the host's manifest linter agrees"
+if [ -d "$SRC/k8s" ]; then
+  ssh "$HOST" "cd $REMOTE_ROOT/scripts && bash lint-k8s-manifest.sh ../k8s/*.yaml" | tail -1
+fi
+
 # ---- 6. and the running system must be safe to measure -----------------
 echo "--- verify: the running lab is not exposed to a vacuum sweep"
 ssh "$HOST" "bash $REMOTE_ROOT/scripts/check-vacuum-state.sh" | tail -1

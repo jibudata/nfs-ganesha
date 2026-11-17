@@ -61,6 +61,32 @@ The same fsync on plain ext4 costs ~1.4 ms, which is why the control export reac
 buffered writes use `UNSTABLE` and only fsync once at the end — **5–6× faster for the
 same durability.**
 
+**How much of the path is the NFS + Ganesha front end?** The same storage plane was
+measured **without** it — the FUSE gateway and the fio that writes to it in the same
+pod, no NFS and no Ganesha anywhere (the "fourth shape" below). The difference is
+the front end's cost (128 MiB per case, medians of 3 rounds, every case verified to
+have landed):
+
+| case | K8s arm + NFS/Ganesha | in-pod, no front end | front-end cost |
+|---|---|---|---|
+| buffered 1 MiB | 776 | 1016 | 1.31× (24% of the path) |
+| buffered 1 MiB × 8 jobs | 941 | 1000 | 1.06× (6%) |
+| **O_DIRECT 1 MiB** | 229 | **1085** | **4.74× (79%)** |
+| **O_DIRECT 8 MiB** | 749 | **1684** | **2.25× (56%)** |
+
+Buffered writes barely pay for the front end; **O_DIRECT writes pay for almost all of
+it**, because every WRITE is a stable write and therefore its own fsync. Enlarging
+the block to 8 MiB lets several fsyncs overlap and cuts the front end's share from
+79% to 56%. See `RECOMMENDATIONS.md` §6.
+
+**Does the packaging cost anything?** The same workload was run against three
+storage backends — bare metal, Docker, Kubernetes — with Ganesha and the FUSE
+gateway identical in all three, so the only variable was the backend. **36/36 cases
+landed, zero void.** Bare metal 643/1049/205/727, Docker 727/934/218/727,
+Kubernetes 776/941/229/749 MiB/s (buf1M / buf8job / odirect1M / odirect8M): all
+three land in the same noise band. **Containerising or Kubernetes-ising the storage
+plane costs no throughput** — see `RECOMMENDATIONS.md` §6.1.
+
 ## Ganesha V15.9
 
 | item | value |
@@ -273,6 +299,49 @@ bash /home/ys1000/seaweedfs/scripts/ganesha-add-export.sh \
      /seaweedfs-docker /home/ys1000/seaweedfs/mnt-docker
 ```
 
+```bash
+# Kubernetes arm (the cluster is a KIND cluster on the same host)
+bash /home/ys1000/seaweedfs/scripts/k8s-build-image.sh   # build + import into the node's containerd
+bash /home/ys1000/seaweedfs/scripts/k8s-deploy.sh up     # apply, wait, and CHECK the wiring
+bash /home/ys1000/seaweedfs/scripts/k8s-fuse-mount.sh up # the host-side FUSE gateway
+bash /home/ys1000/seaweedfs/scripts/ganesha-add-export.sh \
+     /seaweedfs-k8s /home/ys1000/seaweedfs/mnt-k8s
+```
+
+The pods run the storage plane; the FUSE gateway stays on the host, exactly
+as in the other two arms. The one thing that is **not** the same is the
+addressing, and it is the whole trick:
+
+`weed mount` does not read chunks through the filer. It asks the filer where
+a chunk lives, and the filer answers with the volume server's **registered**
+address (`weed/filer/reader_at.go:123` -> `dn.Url()` -> the volume's `-ip`).
+A pod IP is not routable from the host, so each service is given a **fixed
+MetalLB address** and told to advertise it:
+
+| service | LoadBalancer address | what reaches it |
+|---|---|---|
+| master | `172.18.255.50:19340` (+gRPC 29340) | the pods |
+| volume | `172.18.255.51:19342` (+gRPC 29342) | the host's FUSE mount fetches chunks here |
+| filer  | `172.18.255.52:19344` (+gRPC 29344) | the host's FUSE mount |
+
+The pool is inside the `172.18.0.0/16` the host owns on the KIND Docker
+bridge, so the LoadBalancer address is one L2 hop away. `scripts/k8s-deploy.sh`
+does not trust any of this: it checks that the addresses the Services handed
+out are the addresses the manifests asked for, that they answer an HTTP
+request **from the host**, that the master registered the volume under the
+LoadBalancer address, and that the vacuum sweep is off.
+
+`LAB-CONVENTIONS.md` §10 has the rules (R19–R23) and
+`scripts/lint-k8s-manifest.sh` enforces the ones a machine can check.
+
+> **The host is also the NFS client.** Every benchmark mounts this host's own
+> exports, and a leftover client mount retries against this host's own server
+> forever (`nfs: server 192.168.3.146 not responding, still trying`).
+> Eleven of them were left behind by an earlier test on 2026-11-16 and they
+> were part of what took the host to load 98 with `ps` unable to run.
+> `scripts/cleanup-stale-nfs-mounts.sh` removes them, and
+> `scripts/arm-compare.sh` runs it before it measures anything.
+
 The container runs the storage plane (master, volume server, filer); the FUSE
 gateway stays on the host and reaches the container's filer through the
 published port. The image does **not** come from a registry: it copies the
@@ -280,6 +349,62 @@ host's own statically linked binary, so every arm runs the same SeaweedFS
 build (4.54, commit 5ef99c1d) and the comparison cannot be confused by a
 version change. `LAB-CONVENTIONS.md` §9 has the rules (R13–R18) and the three
 traps that made the first attempt look like it worked.
+
+### The fourth shape: the FUSE gateway in a pod, with fio in the same pod
+
+The three arms above all measure the same thing through the same front end:
+
+```
+NFS client -> Ganesha -> FUSE (host) -> filer -> volume server
+```
+
+The fourth shape takes the front end away and measures the storage path on
+its own, from **inside** the cluster:
+
+```
+fio -> FUSE (pod) -> filer (pod) -> volume server (pod)
+```
+
+No NFS, no Ganesha. It is not a fourth point in the same series — it is the
+series without the front end, and that is exactly what makes it useful: the
+difference between it and the Kubernetes arm **is** the cost of NFS + Ganesha.
+
+```bash
+# the image: SeaweedFS (the host's own static binary) + fio, on ubuntu:24.04
+bash /home/ys1000/seaweedfs/scripts/k8s-build-image.sh seaweedfs-lab:4.54-fio --fio
+# run the matrix; each case asserts that the bytes reached the volume server
+ROUNDS=3 bash /home/ys1000/seaweedfs/scripts/k8s-fuse-fio.sh
+# the joint table: front-end cost
+bash /home/ys1000/seaweedfs/scripts/render-front-end-cost.sh
+```
+
+**Why the mount can live in a pod here, when it could not live in the
+container in the Docker arm:** in the Docker arm the mount had to *reach the
+host*, because Ganesha runs on the host, and a mount created in a container
+does not propagate back to the host — it lands in another peer group. Here
+the writer is in the same pod as the mount, so the mount never crosses a
+mount namespace at all.
+
+**The addresses** are the same MetalLB ones the Kubernetes arm uses: the mount
+dials the filer at `172.18.255.52:19344` and fetches chunks from the address
+the master recorded for the volume server (`172.18.255.51:19342`). Both are
+reachable from a pod — verified with `k8s/net-probe.yaml`.
+
+**The pod is privileged** because `weed mount` needs `/dev/fuse` (a hostPath:
+the KIND node is a Docker container that has the device) and `CAP_SYS_ADMIN`.
+The mount point and the chunk cache are `emptyDir`s — they are the FUSE
+layer's own state; the data itself is in the volume server's PersistentVolume.
+
+**fio is the Ubuntu 24.04 package (3.36), the same upstream version as the
+host's local build.** The host's binary is a local build that links ~70 shared
+libraries to enable the gluster/ceph/rbd/nbd back ends, and this benchmark
+uses none of them; the version is what has to match, and `build-image.sh`
+checks it. The SeaweedFS binary in the image is the host's own static build,
+so the storage engine is identical to every other arm.
+
+The landing assertion is done from the **host**, from inside the volume pod,
+before and after every case: the pod that writes cannot see the volume
+server's data directory. A case whose bytes did not land is void.
 
 
 > **Restarting the FUSE mount invalidates the Ganesha export.**

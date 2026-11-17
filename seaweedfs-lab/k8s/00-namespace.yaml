@@ -1,0 +1,14 @@
+# =====================================================================
+# The namespace for the Kubernetes arm of the comparison.
+#
+# Everything the arm owns lives here: the master, the volume server and
+# the filer.  The FUSE gateway and Ganesha stay on the HOST, exactly as
+# in the bare-metal and the Docker arm, so that the only variable between
+# the three arms is where the storage plane runs.
+# =====================================================================
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: seaweedfs
+  labels:
+    app.kubernetes.io/part-of: nfs-ganesha-write-io-lab

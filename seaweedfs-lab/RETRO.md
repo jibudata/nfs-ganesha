@@ -585,6 +585,178 @@ Two more findings came out of the same work:
   ("路径在 /proc/mounts 里" ≠ "是 FUSE 挂载"; "TCP 能连上" ≠ "服务在应答";
   "第一行输出" ≠ "版本行"。)
 
+## S15 · The Kubernetes arm, and the day the host stopped being inspectable
+
+**Findings.**
+
+The third arm was built the same way as the Docker one: the storage plane in
+the cluster, the FUSE gateway and Ganesha on the host. Four things were not
+obvious, and one of them took the host down.
+
+- **The cluster is KIND, not k3s.** `kubectl get nodes` returns a node called
+  `kagent-control-plane` whose providerID is `kind://docker/kagent/...`: the
+  "node" is a Docker container (`kindest/node:v1.37.0`). So the containerd
+  kubelet uses is *inside* that container, and the image has to be imported
+  with `docker save | docker exec -i <node> ctr -n k8s.io images import -`.
+  Importing into the default containerd namespace, or onto the host, leaves
+  the pod in `ErrImagePull` with no hint why. The same container also means
+  the local-path PersistentVolumes live on a Docker **volume** (the node's
+  `/var` is one) — which is on the host's NVMe, so the medium is still the
+  same one as the other two arms.
+- **The pod has to advertise the address the client will use.** `weed mount`
+  does not read chunks through the filer: it asks the filer where a chunk
+  lives, and the filer answers with the volume server's *registered* address
+  (`weed/filer/reader_at.go:123` → `dn.Url()` → the volume's `-ip`). With a
+  pod IP that address is not routable from the host. SeaweedFS keeps the
+  advertised address and the bind address apart (`-ip` vs `-ip.bind`), so the
+  manifests set `-ip` to a **fixed MetalLB address** and `-ip.bind=0.0.0.0`,
+  and the host's mount reaches the filer at `172.18.255.52:19344`.
+  The pool is inside the `172.18.0.0/16` the host owns on the KIND Docker
+  bridge, so the LoadBalancer address is one L2 hop away, no router.
+- **The master does not track filers.** The first version of the deploy
+  script checked that the master's topology mentioned the filer's address.
+  It never can: the filer is a client of the master, not a member of its
+  topology. The check now asks the master, from *inside the filer pod*, for
+  a cluster status — which is what the filer actually needs.
+- **The .dat files cannot be measured at a host path.** The PersistentVolume
+  is a hostPath on the node, and the node is a container, so the path does
+  not exist on the host. A landing check that looked for it would have
+  reported "no bytes landed" for writes that landed perfectly well. The size
+  is measured from inside the volume pod instead.
+
+**And the day the host stopped being inspectable.**
+
+The first comparison run wedged the host. The sequence, in full:
+
+1. The host ran out of memory — **swap 7/7 GiB, 1 GiB free**. It is not a
+   dedicated lab host: three KVM guests, a KIND cluster, the user's IDE and
+   a remote-desktop tool all live on it.
+2. Under memory pressure the Go runtime's scavenger starts calling
+   `madvise`, which needs `mmap_lock` in **write** mode
+   (`prctl_set_vma → madvise_update_vma → down_write`).
+3. A write path held `mmap_lock` in write mode, so every
+   `/proc/<pid>/cmdline` read blocked behind it. **`ps` and `pgrep -f` stopped
+   working on the whole host** — the kernel's hung-task detector caught it:
+   `INFO: task weed:152028 blocked for more than 1105 seconds`.
+4. The Docker arm's filer died. Its FUSE mount kept retrying a connection
+   that would never come back (`grpc: the client connection is closing`),
+   the write never completed, and the fio sat in D state on a page lock.
+5. Eleven NFS client mounts left behind by an earlier heal test kept
+   retrying against this host's own NFS server
+   (`nfs: server 192.168.3.146 not responding, still trying`), so the load
+   average went to **98 on 16 cores** with 97 tasks in D state.
+
+The diagnosis took most of the session, and every step of it was blocked by
+the same thing: **`ps` would not run**. The tools that finally worked were
+the ones that do not read `/proc/<pid>/cmdline` — `/proc/loadavg`,
+`/proc/mounts`, `dmesg`, `journalctl -k`, and a small Python scan of
+`/proc/<pid>/stat`.
+
+**Done.**
+
+- `k8s/`: the namespace and the three manifests, plus `scripts/lint-k8s-manifest.sh`
+  (R19–R22) with six deliberately broken samples proving every rule fires.
+- `scripts/k8s-build-image.sh` (build → import into the node's containerd),
+  `scripts/k8s-deploy.sh` (apply → wait → check the addresses are the ones
+  the manifests asked for → check them from the host → check the master
+  registered the volume → disable the vacuum sweep),
+  `scripts/k8s-fuse-mount.sh` (the host-side gateway) and
+  `scripts/k8s-volume-datsize.sh` (the landing measurement).
+- `scripts/arm-compare.sh`: the three-arm matrix. The arms are **interleaved**
+  and the order **rotates every round**, every case asserts that its bytes
+  landed, and every case checks the arm's health **before** it runs — the
+  check that would have stopped the run before it took the host down.
+- `scripts/cleanup-stale-nfs-mounts.sh`: removes the self-NFS feedback loop.
+- The Docker entrypoint now watches the **filer** too, and the filer's store
+  moved to the mounted volume so it is persistent and on the same device as
+  the other arms.
+- New rules **R19–R26** in `LAB-CONVENTIONS.md`.
+
+**Apply when:**
+- 任何在"服务端兼客户端"的机器上跑 NFS 压测:先清掉遗留的自挂载,再测。
+- 任何"整机 ps 卡住"的现场:别在 ps 上死磕,直接看 dmesg 的 hung task、
+  `/proc/<pid>/stat` 和 free -m。
+- 任何 K8s 化改造:先确认**客户端将来会用的那个地址**是不是被登记成了可达地址。
+
+## S16 · The fourth shape, and a unit that had been wrong in every CSV
+
+Two separate things came out of putting the FUSE gateway **in a pod** with
+fio beside it.
+
+### The fourth shape
+
+The three arms all measure the same path through the same front end
+(`NFS client -> Ganesha -> FUSE -> filer -> volume`). The fourth shape takes
+the front end away and measures the storage path alone, from inside the
+cluster (`fio -> FUSE (pod) -> filer (pod) -> volume (pod)`). It is not a
+fourth point in the same series — it is the series **without** the front end,
+and the difference between it and the Kubernetes arm is the cost of NFS +
+Ganesha.
+
+**Why the mount can live in a pod here, when it could not live in the
+container in the Docker arm:** in the Docker arm the mount had to *reach the
+host* (Ganesha runs there), and a mount created in a container does not
+propagate back to the host — it lands in another peer group. Here the writer
+is in the same pod as the mount, so the mount never crosses a mount namespace
+at all. The rule that falls out of it: **a FUSE mount may live in a container
+only when the thing that writes to it lives there too.**
+
+**fio: the Ubuntu package, not the host's binary.** The host's `fio` is a
+local build that links ~70 shared libraries to enable the gluster/ceph/rbd/nbd
+back ends. Copying it into an image was the obvious move and the wrong one:
+it drags in a dependency set for back ends the benchmark never touches, and
+the image becomes brittle for no gain. The Ubuntu 24.04 package is the same
+upstream version (3.36), and `build-image.sh` now **asserts** that the
+image's fio reports the same version as the host's — the version is the thing
+that has to match, not the binary.
+
+**One round is not a measurement.** The same case measured twice on this host
+came out at 1143 MiB/s and 780 MiB/s. `k8s-fuse-fio.sh` therefore takes a
+median over `ROUNDS` (default 3) and **rotates the case order every round**,
+because the first case of a round pays for the page cache and the connection
+warm-up — the same discipline `arm-compare.sh` uses on the arms.
+
+### The unit that was wrong in every CSV
+
+`tr -d 'clat ():'` is the way to strip fio's unit off its section header, and
+it is **wrong**: `tr` deletes every character *in the set*, so
+`clat (usec):` comes out as `use` and `clat (msec):` as `mse`. The three-arm
+CSV shipped with a `clat_unit` column containing `nse`, `mse` and `use` — three
+different runs of the same case, their latencies in three different units,
+none of them recoverable from the file, and a reader could not tell msec from
+usec.
+
+The fix is `fio_clat_ms()` in `lib-nfslab.sh`: take the unit out of the
+parentheses, convert, and put milliseconds in the CSV. The pod-side copy
+lives in `k8s/run-fuse-fio.sh`, which cannot source the library (the image
+does not carry it) — **the two have to be kept in step, and the comment in
+both says so**.
+
+The rule that came out of it is **R27**, and it has two mechanical halves in
+the linter: no `tr -d` on a unit, and a CSV latency column has to name its
+unit (`clat_avg_ms`). Writing the rule found the same bug in **four older
+scripts** (`ab-ssd-hdd.sh`, `ab2.sh`, `ab3.sh`, `final-bench.sh`) — none of
+which had been reported as broken, because the numbers they produced looked
+plausible.
+
+### The bug that was a bug in the code, not in the design
+
+`image_present()` in `k8s-fuse-fio.sh` declared `local node img` and then
+used `$img` — which was never assigned, so it matched the empty string and
+the function answered "the image is not in the node's containerd" every time.
+The script would then rebuild the image on every run and still not find it.
+It was invisible because the fallback path (`build it, then check again)
+happened to make the script work.
+
+**Apply when:**
+- 任何"把 FUSE 挂载和写它的负载放进同一个容器"的改造:挂载不需要跨 mount namespace,
+  前提是写它的人也在里面。
+- 任何 fio 输出解析:**单位必须从括号里取**,不能靠删字符;两个副本(库里的和镜像里的)
+  要一起改。
+- 任何"同一个用例跑两次数字差很多"的场景:先确认是不是需要多轮中位数 + 轮转顺序。
+- 任何函数里出现 `local a b` 之后 `$b` 从未被赋值:这在 shell 里不会报错,只会静默地
+  匹配空串。
+
 ## Where the improvements landed
 
 | candidate | artefact | status |
@@ -605,6 +777,8 @@ Two more findings came out of the same work:
 | S13 the delivery copy had drifted from the live host | `scripts/deploy-lab.sh` (copy + verify), `ganesha.service` refreshed from the live unit | done |
 | S14 the containerised arm: three bugs that all looked like "it works" | `docker/`, `scripts/docker-*.sh`, `scripts/ganesha-add-export.sh`, R13–R18 | done |
 | R4a non-zero landing probes | `scripts/recover-fuse.sh`, `scripts/sustained-v2.sh`, linter R4a | done |
+| S15 the Kubernetes arm, and the host that stopped being inspectable | `k8s/`, `scripts/k8s-*.sh`, `scripts/lint-k8s-manifest.sh` (R19–R22), `scripts/arm-compare.sh`, `scripts/cleanup-stale-nfs-mounts.sh`, the Docker entrypoint's filer watchdog | done |
+| S16 the fourth shape, and a unit that had been wrong in every CSV | `k8s/40-fuse-fio.yaml`, `k8s/run-fuse-fio.sh`, `docker/Dockerfile-fio`, `scripts/k8s-fuse-fio.sh`, `scripts/render-front-end-cost.sh`, `fio_clat_ms` in `lib-nfslab.sh`, R27 in the linter | done |
 
 ## Numbers that had to be corrected because they were measured on a wedged mount
 

@@ -68,6 +68,64 @@ bounded_unmount() {
     || true
 }
 
+# The apparent size of a volume server's .dat files, in bytes.
+#
+# The APPARENT size, not the block count: the .dat files are not
+# pre-truncated, so they grow with the data and the difference between
+# two measurements is the number of bytes that really landed.  The
+# block count would also move when the volume server compacts.
+#
+# This is the only way to tell "the client was told the write worked"
+# from "the bytes are on the volume server".  A write that the client
+# reports as successful but that never reached the .dat file is the
+# failure this lab exists to catch.
+vol_datsize() { # <volume-data-dir>
+  find "$1" -maxdepth 3 -name '*.dat' -printf '%s\n' 2>/dev/null \
+    | awk '{ s += $1 } END { printf "%d", s + 0 }'
+}
+
+# Which container scope a process lives in: host, docker or k8s.
+#
+# The arms of the comparison run the SAME binary with, in places, the
+# SAME flags, so the command line alone does not always tell them apart.
+# The cgroup does:
+#
+#   host    0::/system.slice/seaweedfs-master.service
+#   docker  0::/system.slice/docker-<container id>.scope
+#   k8s     0::/system.slice/docker-<node>.scope/kubelet.slice/.../
+#           cri-containerd-<container id>.scope
+#
+# The k8s scope is a containerd container inside the KIND node's Docker
+# container, so "is it in Docker" is not enough - the pod is one level
+# deeper.
+proc_scope() { # <pid>
+  local cg
+  cg=$(cat "/proc/$1/cgroup" 2>/dev/null)
+  case "$cg" in
+    *cri-containerd-*) echo k8s ;;
+    *docker-*)         echo docker ;;
+    *)                 echo host ;;
+  esac
+}
+
+# Find the pid of a weed process whose command line contains EVERY one of
+# the given needles.
+#
+# pids_of() excludes this script's own ancestry, so the shell that runs
+# the match cannot match itself.
+weed_pid_matching() { # <needle>...
+  local pid cl needle all
+  for pid in $(pids_of "/usr/local/bin/weed"); do
+    cl=$(tr '\0' ' ' < "/proc/$pid/cmdline" 2>/dev/null) || continue
+    [ -n "$cl" ] || continue
+    all=1
+    for needle in "$@"; do
+      case "$cl" in *"$needle"*) : ;; *) all=0; break ;; esac
+    done
+    [ "$all" -eq 1 ] && echo "$pid"
+  done
+}
+
 # The parent pid of <pid>, read from /proc/<pid>/stat.
 #
 # The comm field (field 2) is wrapped in parentheses and may itself contain
@@ -132,4 +190,32 @@ pids_of_re() {
     [ -n "$cl" ] || continue
     printf '%s' "$cl" | grep -qE "$re" && echo "$pid"
   done
+}
+
+# --- fio's completion latency, normalised to milliseconds ----------------
+#
+# fio picks the unit from the magnitude and prints it in the section
+# header: "clat (usec):".  Stripping the header with "tr -d 'clat ():'" is
+# WRONG: tr deletes every character in the set, so "clat (usec):" comes out
+# as "use" and "clat (msec):" as "mse" - and a reader cannot tell msec from
+# usec, or recover the unit at all.  The three-arm comparison shipped a CSV
+# whose clat_unit column said "nse", "mse" and "use".
+#
+# Take the unit out of the parentheses and convert, so the number in the
+# CSV is always milliseconds.
+#
+# The pod-side copy of this logic lives in k8s/run-fuse-fio.sh, which
+# cannot source this file (the image does not carry it).  Keep the two in
+# step.
+fio_clat_ms() { # <fio output file>
+  local out=$1 unit raw
+  [ -f "$out" ] || { echo "0"; return 0; }
+  unit=$(grep -oE 'clat \((msec|usec|nsec)\)' "$out" | head -1 | grep -oE '(msec|usec|nsec)')
+  raw=$(grep -oE 'clat \((msec|usec|nsec)\):.*avg=[0-9.]+' "$out" \
+        | grep -oE 'avg=[0-9.]+' | head -1 | cut -d= -f2)
+  case "$unit" in
+    usec) awk -v x="${raw:-0}" 'BEGIN{printf "%.3f", x/1000}' ;;
+    nsec) awk -v x="${raw:-0}" 'BEGIN{printf "%.3f", x/1000000}' ;;
+    *)    awk -v x="${raw:-0}" 'BEGIN{printf "%.3f", x}' ;;
+  esac
 }

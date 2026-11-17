@@ -1,0 +1,159 @@
+# =====================================================================
+# SeaweedFS master for the Kubernetes arm.
+#
+# THE ADDRESSING TRICK, and why it is the only way this arm can work:
+#
+#   `weed mount` does NOT read the data through the filer.  When it needs
+#   a chunk it asks the filer where the chunk lives, and the filer
+#   answers with the address of the VOLUME SERVER that holds it:
+#
+#     weed/filer/reader_at.go:123
+#       volumeServerAddress := filerClient.AdjustedUrl(loc)
+#       targetUrl := fmt.Sprintf("http://%s/%s", volumeServerAddress, fileId)
+#
+#   and that address is the volume server's REGISTERED address, not the
+#   pod IP:
+#
+#     weed/topology/topology_info.go:104   Url: dn.Url()
+#     weed/topology/data_node.go:383       dn.Url() = JoinHostPort(dn.Ip, dn.Port)
+#
+#   `dn.Ip` is the volume server's `-ip` flag.  So the address the host's
+#   FUSE mount uses to fetch a chunk is whatever `-ip` says.  With a pod
+#   IP that address is NOT reachable from the host, and the mount either
+#   fails or silently falls back to a proxy read - which would compare a
+#   different data path against the other two arms.
+#
+#   The fix is to give every service a FIXED address from the MetalLB
+#   pool and tell SeaweedFS that this is its `-ip`:
+#
+#     weed/command/volume.go:219   -ip  = the address the server REGISTERS
+#     weed/command/volume.go:222   -ip.bind = the address it BINDS to
+#
+#   `-ip` and `-ip.bind` are separate, so the process can advertise the
+#   LoadBalancer address while binding 0.0.0.0 inside the pod.  The
+#   LoadBalancer Service then maps <LB IP>:<port> to <pod IP>:<port>.
+#
+#   The pool is 172.18.255.0/24, which is inside the 172.18.0.0/16 that
+#   the host owns on br-0b3f0da9c5e3 (a Docker bridge on this host).  The
+#   MetalLB speaker is host-networked and answers ARP for the pool
+#   addresses on that interface, so the host reaches the LoadBalancer
+#   address over the local bridge - no router, no NAT, no external hop.
+#
+# The gRPC port is always http + 10000 (weed/pb/grpc_client_server.go:548
+# ServerToGrpcAddress), so a client that is given the HTTP port reaches
+# the gRPC port at the same offset.  Both have to be published.
+#
+# The automatic vacuum sweep is switched off for the same reason as in
+# the other arms: it rewrites whole volumes and interrupts the in-flight
+# chunk upload, which wedges the FUSE mount, then the Ganesha export,
+# then the NFS client.  See LAB-CONVENTIONS.md R11.
+# =====================================================================
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: seaweedfs-master-data
+  namespace: seaweedfs
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: standard
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: seaweedfs-master
+  namespace: seaweedfs
+  labels:
+    app: seaweedfs-master
+spec:
+  replicas: 1
+  # Recreate, not RollingUpdate: the master owns its metadata directory
+  # and two masters on one volume would fight over it.
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: seaweedfs-master
+  template:
+    metadata:
+      labels:
+        app: seaweedfs-master
+    spec:
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: master
+          image: seaweedfs-lab:4.54
+          # The image is built from the host's own binary and imported
+          # into the node's containerd; there is no registry to pull from.
+          imagePullPolicy: Never
+          command:
+            - /usr/local/bin/weed
+            - master
+          args:
+            - -ip=172.18.255.50
+            - -ip.bind=0.0.0.0
+            - -port=19340
+            - -port.grpc=29340
+            - -mdir=/data/master
+            - -peers=none
+            - -vacuumIntervalSeconds=86400
+            - -telemetry=false
+            - -volumeSizeLimitMB=30720
+          ports:
+            - name: http
+              containerPort: 19340
+            - name: grpc
+              containerPort: 29340
+          volumeMounts:
+            - name: master-data
+              mountPath: /data/master
+          # A TCP probe, not an HTTP one: the master has no single
+          # health endpoint that stays stable across releases, and a
+          # probe with the wrong path would restart a healthy master.
+          readinessProbe:
+            tcpSocket:
+              port: 19340
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          livenessProbe:
+            tcpSocket:
+              port: 19340
+            initialDelaySeconds: 20
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 200m
+              memory: 512Mi
+            limits:
+              cpu: "2"
+              memory: 2Gi
+      volumes:
+        - name: master-data
+          persistentVolumeClaim:
+            claimName: seaweedfs-master-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: seaweedfs-master
+  namespace: seaweedfs
+  labels:
+    app: seaweedfs-master
+spec:
+  type: LoadBalancer
+  # The fixed address the master advertises, and the address the filer
+  # and the volume server dial.  MetalLB honours loadBalancerIP as long
+  # as the address is inside an advertised pool.
+  loadBalancerIP: 172.18.255.50
+  selector:
+    app: seaweedfs-master
+  ports:
+    - name: http
+      port: 19340
+      targetPort: 19340
+    - name: grpc
+      port: 29340
+      targetPort: 29340

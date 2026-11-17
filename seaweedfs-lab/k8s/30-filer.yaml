@@ -1,0 +1,130 @@
+# =====================================================================
+# SeaweedFS filer for the Kubernetes arm.
+#
+# The filer owns the directory tree that the host's FUSE mount exposes.
+# The host's mount dials the filer at the LoadBalancer address, so the
+# filer has to be reachable from the host the same way the volume
+# server is.
+#
+#   weed mount -filer=172.18.255.52:19344
+#     -> http  172.18.255.52:19344
+#     -> grpc  172.18.255.52:29344   (http + 10000, derived by SeaweedFS)
+#
+# `-defaultStoreDir` is set EXPLICITLY here, and that matters:
+#
+#   weed/command/filer.go:145
+#     defaultLevelDbDirectory = "."       (the process's working directory)
+#   weed/command/filer.go:400
+#     defaultLevelDbDirectory = <that> + "/filerldb2"
+#
+# With the default, the filer's LevelDB - the directory tree itself -
+# lands in the container's writable layer.  It is not on the NVMe device
+# and it is gone when the container is recreated.  The bare-metal arm
+# keeps the same store in /home/ys1000/seaweedfs/filerldb2, which IS on
+# the NVMe and IS persistent.  Pointing the store at a PersistentVolume
+# is what makes this arm comparable to the bare-metal one.
+#
+# The flags are copied from the bare-metal scripts/filer.sh.  If a flag
+# is changed here, it has to be changed there too.
+# =====================================================================
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: seaweedfs-filer-data
+  namespace: seaweedfs
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: standard
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: seaweedfs-filer
+  namespace: seaweedfs
+  labels:
+    app: seaweedfs-filer
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: seaweedfs-filer
+  template:
+    metadata:
+      labels:
+        app: seaweedfs-filer
+    spec:
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: filer
+          image: seaweedfs-lab:4.54
+          imagePullPolicy: Never
+          command:
+            - /usr/local/bin/weed
+            - filer
+          args:
+            # The address the host's FUSE mount dials.
+            - -ip=172.18.255.52
+            - -ip.bind=0.0.0.0
+            - -port=19344
+            - -port.grpc=29344
+            # The master.  The gRPC port is derived as http + 10000.
+            - -master=172.18.255.50:19340
+            - -collection=
+            # The directory tree's own store, on a PersistentVolume.
+            - -defaultStoreDir=/data/ldb
+          ports:
+            - name: http
+              containerPort: 19344
+            - name: grpc
+              containerPort: 29344
+          volumeMounts:
+            - name: filer-data
+              mountPath: /data/ldb
+          readinessProbe:
+            tcpSocket:
+              port: 19344
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          livenessProbe:
+            tcpSocket:
+              port: 19344
+            initialDelaySeconds: 20
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
+            limits:
+              cpu: "4"
+              memory: 8Gi
+      volumes:
+        - name: filer-data
+          persistentVolumeClaim:
+            claimName: seaweedfs-filer-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: seaweedfs-filer
+  namespace: seaweedfs
+  labels:
+    app: seaweedfs-filer
+spec:
+  type: LoadBalancer
+  # The address the host's FUSE mount dials.
+  loadBalancerIP: 172.18.255.52
+  selector:
+    app: seaweedfs-filer
+  ports:
+    - name: http
+      port: 19344
+      targetPort: 19344
+    - name: grpc
+      port: 29344
+      targetPort: 29344

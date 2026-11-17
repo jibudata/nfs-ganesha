@@ -25,10 +25,23 @@ CLUSTERS=(
   "B|/home/ys1000/seaweedfs-hdd/mnt|/home/ys1000/seaweedfs-hdd/data|seaweedfs-mount-b|seaweedfs-hdd"
   "A2|/home/ys1000/seaweedfs/mnt-nvme-fresh|/home/ys1000/seaweedfs/data-nvme-fresh|seaweedfs-mount-nvme-fresh|seaweedfs-nvme-fresh"
   "DOCKER|/home/ys1000/seaweedfs/mnt-docker|/home/ys1000/seaweedfs/docker-data|-|seaweedfs-docker|bash /home/ys1000/seaweedfs/scripts/docker-fuse-mount.sh up"
+  "K8S|/home/ys1000/seaweedfs/mnt-k8s|K8S-VOLUME-DATSIZE|-|seaweedfs-k8s|bash /home/ys1000/seaweedfs/scripts/k8s-fuse-mount.sh up"
 )
 
 volbytes() { find "$1" -maxdepth 3 -name '*.dat' -printf '%s\n' 2>/dev/null | awk '{s+=$1} END{printf "%d\n", s+0}'; }
 is_mounted() { grep -q " $1 " /proc/mounts; }
+
+# The size of an arm's .dat files, in bytes.
+#
+# The Kubernetes arm's data lives in a PersistentVolume on the NODE, and
+# the node may itself be a container, so there is no path on this host to
+# look at.  Its size is measured from inside the volume pod instead.
+arm_datsize() { # <tag> <data-dir>
+  case "$2" in
+    K8S-VOLUME-DATSIZE) bash /home/ys1000/seaweedfs/scripts/k8s-volume-datsize.sh ;;
+    *) volbytes "$2" ;;
+  esac
+}
 
 echo "############ 1) detach + restart every FUSE mount ############"
 for c in "${CLUSTERS[@]}"; do
@@ -73,11 +86,11 @@ for c in "${CLUSTERS[@]}"; do
         "192.168.3.146:$ps" "$MP" >/dev/null 2>&1; then
     echo "  $tag ($ps): MOUNT FAILED"; continue
   fi
-  d0=$(volbytes "$dd")
+  d0=$(arm_datsize "$tag" "$dd")
   dd if=/dev/urandom of="$MP/verify-$tag.bin" bs=1M count=32 conv=fsync >/dev/null 2>&1
   rc=$?
   sleep 5
-  d1=$(volbytes "$dd")
+  d1=$(arm_datsize "$tag" "$dd")
   delta=$(( (d1 - d0)/1048576 ))
   printf "  %-3s pseudo=%-22s dd_rc=%s  volume .dat delta=%s MiB  %s\n" \
     "$tag" "$ps" "$rc" "$delta" \

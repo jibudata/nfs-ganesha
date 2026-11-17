@@ -1,0 +1,97 @@
+# =====================================================================
+# The FUSE gateway INSIDE a pod, with fio writing to it.
+#
+# This is the fourth shape of the comparison.  The other three keep the
+# FUSE gateway on the HOST and export it through Ganesha; this one keeps
+# the whole data path inside the cluster:
+#
+#   fio  ->  FUSE (this pod)  ->  filer (pod)  ->  volume server (pod)
+#
+# No NFS, no Ganesha.  What it measures is the storage path on its own,
+# from inside the cluster - and it is the one shape where the FUSE mount
+# does NOT have to be visible to the host, which is why it can live in a
+# pod at all (a mount created in a container does not propagate back to
+# the host, but it does not have to when the writer is in the same pod).
+#
+# The mount reaches the filer at the LoadBalancer address and fetches the
+# chunks from the address the master recorded for the volume server.  Both
+# are reachable from a pod: verified with k8s/net-probe.yaml.
+#
+# The pod is privileged because `weed mount` needs the FUSE device and
+# CAP_SYS_ADMIN.  /dev/fuse is a hostPath: the node (a KIND node, i.e. a
+# Docker container) has the device, and it is passed through.
+#
+# The fio in the image is the Ubuntu 24.04 package, which is the same
+# upstream version as the host's local build (3.36) - so the numbers are
+# comparable with the other arms and not with "some fio".  The package
+# lacks the gluster/ceph/rbd/nbd back ends that the host's local build
+# has; none of them is used here.
+#
+# The placeholders are filled in by scripts/k8s-fuse-fio.sh.
+# =====================================================================
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: seaweedfs-fuse-fio
+  namespace: seaweedfs
+  labels:
+    app: seaweedfs-fuse-fio
+spec:
+  backoffLimit: 0
+  template:
+    metadata:
+      labels:
+        app: seaweedfs-fuse-fio
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: fuse-fio
+          image: seaweedfs-lab:4.54-fio
+          # The image is built from the host's own binaries and imported
+          # into the node's containerd; there is no registry to pull from.
+          imagePullPolicy: Never
+          command:
+            - /bin/bash
+            - /work/run-fuse-fio.sh
+          env:
+            - name: FILER
+              value: "@FILER@"
+            - name: CASE
+              value: "@CASE@"
+            - name: BS
+              value: "@BS@"
+            - name: SIZE
+              value: "@SIZE@"
+            - name: DIRECT
+              value: "@DIRECT@"
+            - name: NJOBS
+              value: "@NJOBS@"
+          # `weed mount` needs the FUSE device and CAP_SYS_ADMIN.
+          securityContext:
+            privileged: true
+          volumeMounts:
+            - name: fuse
+              mountPath: /dev/fuse
+            - name: mnt
+              mountPath: /mnt
+            - name: cache
+              mountPath: /cache
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
+            limits:
+              cpu: "4"
+              memory: 8Gi
+      volumes:
+        - name: fuse
+          hostPath:
+            path: /dev/fuse
+            type: CharDevice
+        # The mount point and the chunk cache live in the pod: they are
+        # the FUSE layer's own state, and the data itself is in the
+        # volume server's PersistentVolume.
+        - name: mnt
+          emptyDir: {}
+        - name: cache
+          emptyDir: {}
