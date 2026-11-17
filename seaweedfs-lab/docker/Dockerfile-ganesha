@@ -1,0 +1,52 @@
+# Build and run the Ganesha 15.9 benchmark image.
+# Build context is the repository root; the helper initializes libntirpc first.
+FROM ubuntu:24.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update -q \
+ && apt-get install -y --no-install-recommends \
+      cmake gcc g++ make pkg-config python3 \
+      libssl-dev libkrb5-dev libnfsidmap-dev \
+      libdbus-1-dev libcap-dev libattr1-dev libacl1-dev \
+      uuid-dev libblkid-dev libaio-dev libjemalloc-dev \
+      libtirpc-dev liburcu-dev \
+ && apt-get clean \
+ && rm -rf /var/lib/apt/lists/*
+
+COPY src /src
+RUN cmake -S /src -B /build \
+      -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+      -DCMAKE_INSTALL_PREFIX=/usr \
+      -DUSE_FSAL_VFS=ON \
+      -DUSE_FSAL_CEPH=OFF \
+      -DUSE_FSAL_CEPH_FSCRYPT=OFF \
+      -DUSE_FSAL_GLUSTER=OFF \
+      -DUSE_FSAL_GPFS=OFF \
+      -DUSE_FSAL_KVSFS=OFF \
+      -DUSE_FSAL_LUSTRE=OFF \
+      -DUSE_FSAL_LIZARDFS=DEFAULT_OFF \
+      -DUSE_FSAL_MEM=OFF \
+      -DUSE_FSAL_NULL=OFF \
+      -DUSE_FSAL_PROXY_V3=OFF \
+      -DUSE_FSAL_PROXY_V4=OFF \
+      -DUSE_FSAL_RGW=OFF \
+      -DUSE_FSAL_SAUNAFS=OFF \
+      -DUSE_FSAL_XFS=OFF \
+      -DUSE_DBUS=OFF \
+      -DUSE_GRPC=OFF \
+      -DUSE_LTTNG=OFF \
+      -DUSE_GTEST=OFF \
+      -DUSE_MAN_PAGE=OFF \
+      -DUSE_MONITORING=ON \
+      -DUSE_GSS=ON \
+      -DUSE_NFSIDMAP=DEFAULT_ON \
+ && cmake --build /build --parallel "$(nproc)" \
+ && cmake --install /build \
+ && ldconfig \
+ && ganesha.nfsd -v
+
+COPY seaweedfs-lab/k8s/ganesha-entrypoint.sh /usr/local/bin/ganesha-entrypoint
+RUN chmod 0755 /usr/local/bin/ganesha-entrypoint \
+ && mkdir -p /etc/ganesha /var/log/ganesha /mnt/seaweedfs
+
+ENTRYPOINT ["/usr/local/bin/ganesha-entrypoint"]
