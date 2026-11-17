@@ -11,12 +11,14 @@ FIO=${FIO:-/usr/local/bin/fio}
 SIZE=${SIZE:-512M}
 CONC_SIZE=${CONC_SIZE:-128M}
 DATSIZE=${DATSIZE:-$(dirname "$0")/k8s-volume-datsize.sh}
-CSV=${CSV:-/tmp/ganesha-fuse-pod-fio.csv}
+ARTIFACT_DIR=${ARTIFACT_DIR:-/tmp/ganesha-fuse-artifacts}
+CSV=${CSV:-$ARTIFACT_DIR/results.csv}
 
 [ -x "$FIO" ] || { echo "ERROR: fio executable not found: $FIO" >&2; exit 2; }
 command -v kubectl >/dev/null 2>&1 || { echo "ERROR: kubectl is required for volume landing checks" >&2; exit 2; }
 # /mnt is root-owned on the runner; the NFS mount below hides this directory.
 sudo mkdir -p "$MNT"
+mkdir -p "$ARTIFACT_DIR"
 
 if [ "$NFS_PORT" = 2049 ]; then
   svc_ip=$(kubectl -n "$NS" get svc seaweedfs-ganesha-fuse -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || true)
@@ -33,10 +35,21 @@ fi
 awk -v m="$MNT" '$2 == m && $3 ~ /^nfs/ { found=1 } END { exit !found }' /proc/mounts \
   || { echo "ERROR: NFS mount is not present at $MNT" >&2; exit 1; }
 
+# Everything a reviewer needs to reproduce a number lives in ARTIFACT_DIR:
+# the raw fio output, the fio job file, the CSV and the mount/version context.
+{
+  echo "date: $(date -Is)"
+  echo "fio: $("$FIO" --version 2>&1 | head -1)"
+  echo "mount: $MNT (port $NFS_PORT)"
+  echo "size: $SIZE; conc_size: $CONC_SIZE"
+} > "$ARTIFACT_DIR/run-info.txt"
+awk -v m="$MNT" '$2 == m' /proc/mounts > "$ARTIFACT_DIR/nfs-mounts.txt"
+
 printf 'case,bw,bytes,landed_bytes,rc\n' > "$CSV"
 run_case() {
   local name=$1 bs=$2 direct=$3 jobs=$4 size=$5
-  local before after delta rc=0 out="/tmp/${name}.fio.out" job="/tmp/${name}.fio"
+  local before after delta rc=0
+  local out="$ARTIFACT_DIR/${name}.fio.out" job="$ARTIFACT_DIR/${name}.fio"
   before=$(bash "$DATSIZE")
   cat > "$job" <<EOF
 [global]
@@ -75,7 +88,7 @@ EOF
     echo "ERROR: only $delta bytes reached volume .dat files; case is invalid" >&2
     return 1
   fi
-  rm -f "$MNT/$name".* "$job"
+  rm -f "$MNT/$name".*
 }
 
 run_case buffered-1m 1M 0 1 "$SIZE"
@@ -84,4 +97,5 @@ run_case odirect-8m 8M 1 1 "$SIZE"
 run_case buffered-8job 1M 0 8 "$CONC_SIZE"
 
 echo "CSV: $CSV"
+echo "Raw fio output and job files: $ARTIFACT_DIR"
 echo "NFS mount remains at $MNT; unmount manually after reviewing the run."

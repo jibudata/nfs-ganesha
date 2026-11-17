@@ -169,25 +169,35 @@ jobs:
           GANESHA_NFS_HOST: 127.0.0.1
           GANESHA_NFS_PORT: 32049
           NFS_MNT: /mnt/ganesha-kind-ci
-          CSV: ${{ runner.temp }}/ganesha-fuse-kind.csv
+          ARTIFACT_DIR: ${{ runner.temp }}/ganesha-fuse-kind
+          CSV: ${{ runner.temp }}/ganesha-fuse-kind/results.csv
         run: bash seaweedfs-lab/scripts/bench-k8s-ganesha-fuse.sh
 
-      - name: Upload smoke benchmark results
+      - name: Collect raw logs and Kubernetes state
+        if: always()
+        run: |
+          d="${{ runner.temp }}/ganesha-fuse-kind/k8s"
+          mkdir -p "$d"
+          kubectl -n seaweedfs get pods,svc,pvc -o wide > "$d/objects.txt" 2>&1 || true
+          kubectl -n seaweedfs describe pods > "$d/describe.txt" 2>&1 || true
+          kubectl -n seaweedfs get events --sort-by=.lastTimestamp > "$d/events.txt" 2>&1 || true
+          kubectl -n seaweedfs logs deploy/seaweedfs-ganesha-fuse -c fuse --tail=500 > "$d/fuse.log" 2>&1 || true
+          kubectl -n seaweedfs logs deploy/seaweedfs-ganesha-fuse -c ganesha --tail=500 > "$d/ganesha.log" 2>&1 || true
+          cp -r "$RUNNER_TEMP/ganesha-k8s" "$d/manifests" 2>/dev/null || true
+          echo '--- objects ---'
+          cat "$d/objects.txt"
+          echo '--- fuse log tail ---'
+          tail -50 "$d/fuse.log"
+          echo '--- ganesha log tail ---'
+          tail -50 "$d/ganesha.log"
+
+      - name: Upload benchmark artifacts (raw fio + logs)
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: ganesha-fuse-kind-smoke
-          path: ${{ runner.temp }}/ganesha-fuse-kind.csv
+          path: ${{ runner.temp }}/ganesha-fuse-kind/
           if-no-files-found: ignore
-
-      - name: Collect Kubernetes diagnostics
-        if: failure()
-        run: |
-          kubectl -n seaweedfs get pods,svc,pvc -o wide || true
-          kubectl -n seaweedfs describe pods || true
-          kubectl -n seaweedfs get events --sort-by=.lastTimestamp | tail -30 || true
-          kubectl -n seaweedfs logs deploy/seaweedfs-ganesha-fuse -c fuse --tail=100 || true
-          kubectl -n seaweedfs logs deploy/seaweedfs-ganesha-fuse -c ganesha --tail=100 || true
 
       - name: Cleanup NFS mount
         if: always()
