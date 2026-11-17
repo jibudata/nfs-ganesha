@@ -44,17 +44,20 @@ jobs:
           config: .github/kind-nfs-ci.yaml
           node_image: kindest/node:v1.32.0
 
-      - name: Make the Kind node mount tree shared (FUSE mount propagation)
+      - name: Create a shared hostPath for the FUSE export
         run: |
-          # The arm runs the FUSE gateway and Ganesha in two containers that
-          # share the export emptyDir.  The FUSE mount made in the first
-          # container only reaches the second if the node's mount tree is
-          # shared; a default Kind node is private, so Ganesha's entrypoint
-          # times out waiting for /mnt/seaweedfs (observed in run 44044860182:
-          # fuse Ready, ganesha exit 1 after 120 s).  Make the node shared.
+          # The two-container arm needs the FUSE submount to propagate from
+          # the fuse container to the Ganesha container.  An emptyDir on a
+          # default Kind node stays private and does not propagate (run
+          # 44051984700: fuse saw fuse.seaweedfs, ganesha saw ext4), even
+          # after making the node root shared.  Use a tmpfs that is
+          # explicitly shared and give the pod that hostPath.
           node=ganesha-fuse-ci-control-plane
-          docker exec "$node" mount --make-rshared /
-          docker exec "$node" findmnt -no TARGET,PROPAGATION / || true
+          docker exec "$node" sh -c '
+            mkdir -p /mnt/ganesha-export
+            mountpoint -q /mnt/ganesha-export || mount -t tmpfs -o size=64m tmpfs /mnt/ganesha-export
+            mount --make-shared /mnt/ganesha-export'
+          docker exec "$node" findmnt -no TARGET,PROPAGATION /mnt/ganesha-export
 
       - name: Build Ganesha image
         run: docker build -f seaweedfs-lab/docker/Dockerfile-ganesha -t seaweedfs-lab:ganesha-v15.9 .
@@ -129,6 +132,12 @@ jobs:
             -e 's/memory: 2Gi/memory: 512Mi/g' \
             -e 's/memory: 8Gi/memory: 2Gi/g' \
             seaweedfs-lab/k8s/50-ganesha-fuse.yaml > "$RUNNER_TEMP/ganesha-k8s/50-ganesha-fuse.yaml"
+          # The arm's export is an emptyDir, which cannot propagate its FUSE
+          # submount on a private node.  Point it at the shared tmpfs created
+          # above instead (the hostPath replaces the emptyDir volume).
+          perl -0pi -e 's/- name: export-path\n(\s+)emptyDir: \{\}/- name: export-path\n$1hostPath:\n$1  path: \/mnt\/ganesha-export\n$1  type: Directory/' \
+            "$RUNNER_TEMP/ganesha-k8s/50-ganesha-fuse.yaml"
+          grep -A3 'name: export-path' "$RUNNER_TEMP/ganesha-k8s/50-ganesha-fuse.yaml"
           # Fail here, with the generated file visible, rather than inside the
           # benchmark when the service is not a NodePort.  The nodePort itself
           # is patched after apply: a textual sed cannot tell the Service port
