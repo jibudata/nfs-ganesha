@@ -5,7 +5,7 @@ FROM ubuntu:24.04
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update -q \
  && apt-get install -y --no-install-recommends \
-      cmake gcc g++ make pkg-config python3 \
+      cmake gcc g++ make pkg-config python3 bison flex \
       libssl-dev libkrb5-dev libnfsidmap-dev \
       libdbus-1-dev libcap-dev libattr1-dev libacl1-dev \
       uuid-dev libblkid-dev libaio-dev libjemalloc-dev \
