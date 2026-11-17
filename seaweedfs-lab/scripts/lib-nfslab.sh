@@ -192,6 +192,51 @@ pids_of_re() {
   done
 }
 
+# --- cluster space reclaim ------------------------------------------------
+#
+# Deleting a file through a mount deletes the filer entry and tombstones
+# the chunks, but the .dat files KEEP their size: the bytes come back only
+# when the master compacts the volume (vacuum).  The lab runs every master
+# with -vacuumIntervalSeconds=86400 precisely so a sweep never lands inside
+# a measurement (R11) - which means a harness that writes tens of GiB per
+# case MUST compact on purpose, BETWEEN cases, or the disk fills by the
+# third case.
+#
+# The HTTP route is a trap in SeaweedFS 4.x: "GET /vacuum" is answered
+# with {"error":"volume id vacuum not found"} because the router reads the
+# path as /<volume-id>/<command>.  The working entry point is the shell:
+# weed shell refuses to run admin commands before "lock", so pipe both.
+vacuum_cluster() { # <master-http-address>
+  printf 'lock\nvolume.vacuum -garbageThreshold=%s\n' \
+         "${VACUUM_THRESHOLD:-0.01}" \
+    | timeout "${VACUUM_TIMEOUT:-300}" "${WEED_BIN:-/usr/local/bin/weed}" \
+        shell -master="$1" >/dev/null 2>&1
+}
+
+# Wait until a size getter stops moving, so a measurement or a reclaim is
+# not read while the number is still changing underneath it.
+#
+#   wait_size_stable <getter-command> <poll-secs> <max-secs>
+#
+# Stable means UNCHANGED for three consecutive polls.  Returns 1 when the
+# maximum elapsed without stabilising (the caller decides whether that is
+# fatal: a landing that never settles is, a slow vacuum is not).
+wait_size_stable() { # <getter-command> <poll-secs> <max-secs>
+  local get=$1 poll=$2 max=$3 waited=0 stable=0 last now
+  last=$($get 2>/dev/null)
+  while [ "$waited" -lt "$max" ]; do
+    sleep "$poll"; waited=$((waited + poll))
+    now=$($get 2>/dev/null)
+    if [ "$now" = "$last" ]; then
+      stable=$((stable + poll))
+      [ "$stable" -ge $((poll * 3)) ] && return 0
+    else
+      stable=0; last=$now
+    fi
+  done
+  return 1
+}
+
 # --- fio's completion latency, normalised to milliseconds ----------------
 #
 # fio picks the unit from the magnitude and prints it in the section

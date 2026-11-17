@@ -61,6 +61,15 @@ CSV=${CSV:-$LAB_ROOT/logs/k8s-fuse-fio.csv}
 SIZE=${SIZE:-128M}
 CONC_SIZE=${CONC_SIZE:-16M}
 DATSIZE=${DATSIZE:-$LAB_ROOT/scripts/k8s-volume-datsize.sh}
+# The host-side view of the SAME filer the pod writes to: the case's
+# files are deleted through it, because the pod is gone by then.
+MNT_K8S=${MNT_K8S:-$LAB_ROOT/mnt-k8s}
+K8S_MASTER=${K8S_MASTER:-172.18.255.50:19340}
+# Both timeouts scale with the case size: the 128 MiB-era 600/900 s pair
+# is far too small for a 50 GiB case on a slow shape (the pod-side fio
+# timeout is passed through the manifest into the pod).
+JOB_WAIT=${JOB_WAIT:-900}
+FIO_TIMEOUT=${FIO_TIMEOUT:-900}
 
 KUBECTL=${KUBECTL:-kubectl}
 if ! command -v "$KUBECTL" >/dev/null 2>&1; then
@@ -156,7 +165,7 @@ run_case() { # <round> <case> <bs> <size> <direct> <njobs>
   sick=$(plane_health)
   if [ -n "$sick" ]; then
     printf '  *** SKIPPED - the storage plane is not healthy:%s\n' "$sick"
-    echo "round,$case,$bs,$nj,$direct,,,,,,,,,,skipped=1,unhealthy=1" >> "$CSV"
+    echo "$round,$case,$bs,$nj,$direct,,,,,,,void=1,0,skipped=1,unhealthy=1" >> "$CSV"
     return 2
   fi
 
@@ -183,12 +192,13 @@ run_case() { # <round> <case> <bs> <size> <direct> <njobs>
       -e "s|@SIZE@|$size|g" \
       -e "s|@DIRECT@|$direct|g" \
       -e "s|@NJOBS@|$nj|g" \
+      -e "s|@FIO_TIMEOUT@|$FIO_TIMEOUT|g" \
       "$MANIFEST" > "$yaml"
 
   "$KUBECTL" -n "$NS" apply -f "$yaml" >/dev/null 2>&1 || {
     echo "  ERROR: the job could not be created"; return 1; }
 
-  if ! "$KUBECTL" -n "$NS" wait --for=condition=complete "job/$JOB" --timeout=600s >/dev/null 2>&1; then
+  if ! "$KUBECTL" -n "$NS" wait --for=condition=complete "job/$JOB" --timeout="${JOB_WAIT}s" >/dev/null 2>&1; then
     echo "  *** the job did not complete"
     "$KUBECTL" -n "$NS" get pods -l app=seaweedfs-fuse-fio -o wide 2>&1 | sed 's/^/  /'
     "$KUBECTL" -n "$NS" logs -l app=seaweedfs-fuse-fio --tail 40 2>&1 | sed 's/^/  /'
@@ -228,9 +238,34 @@ run_case() { # <round> <case> <bs> <size> <direct> <njobs>
   printf '  %-12s BW=%-9s clat=%s%-4s el=%-7ss wrote=%sMiB landed=%sMiB %s\n' \
     "$case" "${bw:-0}" "${clat:-0}" "${cunit:-ms}" "$elapsed" "${wrote:-0}" "$delta" \
     "$([ "$void" -eq 1 ] && echo '*** VOID ***')"
-  echo "$round,$case,$bs,$nj,$direct,${bw:-0},${clat:-0},${cunit:-ms},$elapsed,${wrote:-0},$delta,void=$void" >> "$CSV"
 
   "$KUBECTL" -n "$NS" delete job "$JOB" --ignore-not-found >/dev/null 2>&1
+
+  # --- reclaim the space the case used ----------------------------------
+  # The pod wrote into the filer's namespace and is gone now; the same
+  # files are visible on the host mount of that filer.  Deleting them
+  # there tombstones the chunks - the .dat only shrinks after a vacuum,
+  # which must happen BETWEEN cases, never inside one (lib-nfslab.sh).
+  # Without this, a sustained-size run fills the disk by the third case.
+  rm -f "$MNT_K8S"/inpod-*-"$case".* 2>/dev/null
+  local r0 r1 reclaim_s=0
+  r0=$(date +%s)
+  vacuum_cluster "$K8S_MASTER"
+  wait_size_stable "bash $DATSIZE" 5 600 || true
+  # The first vacuum can TRIGGER a compaction that outlives the settle
+  # window (measured: .dat still 4.00 GiB after the first round, 0.00
+  # after the second).  A second vacuum after the compaction had time to
+  # finish is what actually returns the space - without it, four 50 GiB
+  # cases stack towards the disk-filling regime.
+  sleep 15
+  vacuum_cluster "$K8S_MASTER"
+  wait_size_stable "bash $DATSIZE" 5 600 || true
+  r1=$(date +%s)
+  reclaim_s=$((r1 - r0))
+  printf '  reclaim: %ss, .dat now %s GiB\n' "$reclaim_s" \
+    "$(awk -v b="$(bash "$DATSIZE")" 'BEGIN{printf "%.2f", b/1073741824}')"
+
+  echo "$round,$case,$bs,$nj,$direct,${bw:-0},${clat:-0},${cunit:-ms},$elapsed,${wrote:-0},$delta,void=$void,$reclaim_s" >> "$CSV"
 
   # --- and the plane has to be healthy AFTER the case ---------------------
   # If a service died during the case, the next case would hang against a
@@ -245,7 +280,7 @@ run_case() { # <round> <case> <bs> <size> <direct> <njobs>
   return 0
 }
 
-echo "round,case,bs,njobs,direct,BW,clat_avg_ms,clat_unit,elapsed_s,wrote_mib,landed_mib,void" > "$CSV"
+echo "round,case,bs,njobs,direct,BW,clat_avg_ms,clat_unit,elapsed_s,wrote_mib,landed_mib,void,reclaim_s" > "$CSV"
 echo "### the FUSE-in-a-pod arm: $(date -Is) rounds=$ROUNDS size=$SIZE ###"
 
 # The cases run in a ROTATING order, one case per round shifted by one.

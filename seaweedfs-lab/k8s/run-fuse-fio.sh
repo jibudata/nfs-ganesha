@@ -40,6 +40,9 @@ NJOBS=${NJOBS:-1}
 MNT=${MNT:-/mnt}
 CACHE=${CACHE:-/cache}
 LOGDIR=${LOGDIR:-/work/log}
+# The fio timeout, in seconds.  The default is the 128 MiB-era value; a
+# sustained-size case passes a bigger one through the manifest.
+FIO_TIMEOUT=${FIO_TIMEOUT:-900}
 
 mkdir -p "$LOGDIR" "$CACHE" "$MNT"
 
@@ -102,9 +105,9 @@ JF=$LOGDIR/job.fio
   printf '\n[%s]\nnumjobs=%s\n' "$CASE" "$NJOBS"
 } > "$JF"
 
-log "running fio: bs=$BS size=$SIZE direct=$DIRECT numjobs=$NJOBS"
+log "running fio: bs=$BS size=$SIZE direct=$DIRECT numjobs=$NJOBS timeout=${FIO_TIMEOUT}s"
 t0=$(date +%s.%N)
-timeout 900 "$FIO" "$JF" > "$LOGDIR/fio.out" 2>&1
+timeout "$FIO_TIMEOUT" "$FIO" "$JF" > "$LOGDIR/fio.out" 2>&1
 rc=$?
 t1=$(date +%s.%N)
 el=$(awk -v a="$t0" -v b="$t1" 'BEGIN{printf "%.3f", b-a}')

@@ -263,6 +263,21 @@ sudo systemctl restart ganesha
   resets in-flight chunk uploads. See R11 below for the mechanism and for the
   parameter's two traps.
 
+**R30 — A harness that writes gigabytes per case must RECLAIM between cases —
+and the reclaim must be verified, not assumed.** Deleting a file through a
+mount only tombstones the chunks; the `.dat` files keep their size until the
+master compacts the volume. R11 pushes the automatic sweep to 24 h, so at
+50 GiB per case the disk is full by the third case unless the harness vacuums
+on purpose, BETWEEN cases (never inside one). And the vacuum is not a promise:
+`GET /vacuum` on a 4.x master is a trap (the router reads it as
+`/<volume-id>/<command>` and answers `volume id vacuum not found`); the
+working entry point is `weed shell`, which refuses admin commands until
+`lock`, so pipe both (`vacuum_cluster` in `lib-nfslab.sh`). A reclaim that
+fails twice must STOP the run — a full disk wedges every cluster on the host
+at once. `sustained-50g.sh` also caps the test-data footprint (`.dat` above
+the post-vacuum baseline, summed over arms) and checks free space before
+every case, because a budget that is not enforced is a hope, not a budget.
+
 ## 7. Master startup parameters
 
 **R11 — Every master startup script must set `-vacuumIntervalSeconds` to at least
