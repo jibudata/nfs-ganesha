@@ -1,0 +1,72 @@
+#!/usr/bin/env bash
+# Host-side fio comparison arm: NFS client -> Pod Ganesha -> Pod FUSE -> SeaweedFS.
+set -euo pipefail
+
+NS=${K8S_NS:-seaweedfs}
+LB_IP=${GANESHA_LB_IP:-172.18.255.53}
+MNT=${NFS_MNT:-/mnt/ganesha-k8s}
+FIO=${FIO:-/usr/local/bin/fio}
+SIZE=${SIZE:-512M}
+DATSIZE=${DATSIZE:-$(dirname "$0")/k8s-volume-datsize.sh}
+CSV=${CSV:-/tmp/ganesha-fuse-pod-fio.csv}
+
+[ -x "$FIO" ] || { echo "ERROR: fio executable not found: $FIO" >&2; exit 2; }
+command -v kubectl >/dev/null 2>&1 || { echo "ERROR: kubectl is required for volume landing checks" >&2; exit 2; }
+mkdir -p "$MNT"
+
+svc_ip=$(kubectl -n "$NS" get svc seaweedfs-ganesha-fuse -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || true)
+[ "$svc_ip" = "$LB_IP" ] || { echo "ERROR: service IP is '${svc_ip:-none}', expected $LB_IP" >&2; exit 1; }
+
+if ! awk -v m="$MNT" '$2 == m && $3 ~ /^nfs/ { found=1 } END { exit !found }' /proc/mounts; then
+  sudo mount -t nfs -o vers=4.1,proto=tcp,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2 \
+    "$LB_IP:/seaweedfs" "$MNT"
+fi
+awk -v m="$MNT" '$2 == m && $3 ~ /^nfs/ { found=1 } END { exit !found }' /proc/mounts \
+  || { echo "ERROR: NFS mount is not present at $MNT" >&2; exit 1; }
+
+printf 'case,bw,bytes,landed_bytes,rc\n' > "$CSV"
+run_case() {
+  local name=$1 bs=$2 direct=$3 jobs=$4 size=$5
+  local before after delta rc=0 out="/tmp/${name}.fio.out" job="/tmp/${name}.fio"
+  before=$(bash "$DATSIZE")
+  cat > "$job" <<EOF
+[global]
+ioengine=libaio
+rw=write
+bs=$bs
+direct=$direct
+iodepth=16
+size=$size
+fallocate=none
+end_fsync=1
+scramble_buffers=1
+directory=$MNT
+filename_format=$name.\$jobnum
+group_reporting=1
+[$name]
+numjobs=$jobs
+EOF
+  echo "=== $name: bs=$bs direct=$direct jobs=$jobs size/job=$size ==="
+  timeout 1800 "$FIO" "$job" > "$out" 2>&1 || rc=$?
+  cat "$out"
+  [ "$rc" -eq 0 ] || { echo "ERROR: fio failed ($rc)" >&2; return 1; }
+  after=$(bash "$DATSIZE")
+  delta=$((after - before))
+  local expected=$(( $(numfmt --from=iec "$size") * jobs ))
+  local bw
+  bw=$(grep -E '^[[:space:]]*WRITE:[[:space:]]*bw=' "$out" | tail -1 | sed -E 's/.*bw=([^, ]+).*/\1/' || true)
+  printf '%s,%s,%s,%s,%s\n' "$name" "${bw:-unknown}" "$expected" "$delta" "$rc" | tee -a "$CSV"
+  if [ "$delta" -lt $((expected / 2)) ]; then
+    echo "ERROR: only $delta bytes reached volume .dat files; case is invalid" >&2
+    return 1
+  fi
+  rm -f "$MNT/$name".* "$job"
+}
+
+run_case buffered-1m 1M 0 1 "$SIZE"
+run_case odirect-1m 1M 1 1 "$SIZE"
+run_case odirect-8m 8M 1 1 "$SIZE"
+run_case buffered-8job 1M 0 8 128M
+
+echo "CSV: $CSV"
+echo "NFS mount remains at $MNT; unmount manually after reviewing the run."
