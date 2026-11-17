@@ -1,0 +1,9 @@
+# Single-node Kind cluster exposing the NFS NodePort on the runner host.
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+  - role: control-plane
+    extraPortMappings:
+      - containerPort: 32049
+        hostPort: 32049
+        protocol: TCP

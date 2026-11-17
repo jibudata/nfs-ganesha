@@ -1,0 +1,194 @@
+name: SeaweedFS + Ganesha Kind smoke benchmark
+
+on:
+  pull_request:
+    paths:
+      - '.github/kind-nfs-ci.yaml'
+      - '.github/workflows/ganesha-fuse-kind.yml'
+      - 'seaweedfs-lab/docker/Dockerfile-ganesha'
+      - 'seaweedfs-lab/k8s/**'
+      - 'seaweedfs-lab/scripts/bench-k8s-ganesha-fuse.sh'
+      - 'seaweedfs-lab/scripts/k8s-volume-datsize.sh'
+      - 'src/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  kind-smoke-benchmark:
+    name: Kind integration smoke test (small writes)
+    runs-on: ubuntu-24.04
+    # Ganesha is built from source in the first step; 45 min is tight on a
+    # 4-vCPU runner.  The benchmark itself is seconds.
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          submodules: false
+          fetch-depth: 0
+
+      - name: Install NFS client and fio
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y --no-install-recommends nfs-common fio
+
+      - name: Initialize Ganesha build submodule
+        run: git submodule update --init --recursive --depth 1 src/libntirpc
+
+      - name: Create Kind cluster
+        uses: helm/kind-action@v1.12.0
+        with:
+          cluster_name: ganesha-fuse-ci
+          config: .github/kind-nfs-ci.yaml
+          node_image: kindest/node:v1.32.0
+
+      - name: Build Ganesha image
+        run: docker build -f seaweedfs-lab/docker/Dockerfile-ganesha -t seaweedfs-lab:ganesha-v15.9 .
+
+      - name: Build SeaweedFS FUSE image from pinned release binary
+        shell: bash
+        run: |
+          set -euo pipefail
+          image=chrislusf/seaweedfs:4.54
+          docker pull "$image"
+          cid=$(docker create "$image")
+          trap 'docker rm -f "$cid" >/dev/null 2>&1 || true' EXIT
+          mkdir -p "$RUNNER_TEMP/seaweedfs-fuse-image"
+          copied=0
+          for binary in /usr/bin/weed /usr/local/bin/weed; do
+            if docker cp "$cid:$binary" "$RUNNER_TEMP/seaweedfs-fuse-image/weed" 2>/dev/null; then
+              copied=1
+              break
+            fi
+          done
+          if [ "$copied" -ne 1 ]; then
+            echo 'Could not find weed in the pinned SeaweedFS image' >&2
+            exit 1
+          fi
+          cat > "$RUNNER_TEMP/seaweedfs-fuse-image/Dockerfile" <<'EOF'
+          FROM debian:bookworm-slim
+          RUN apt-get update \
+           && apt-get install -y --no-install-recommends bash fuse3 ca-certificates \
+           && printf 'user_allow_other\n' > /etc/fuse.conf \
+           && apt-get clean \
+           && rm -rf /var/lib/apt/lists/*
+          COPY weed /usr/local/bin/weed
+          RUN chmod 0755 /usr/local/bin/weed
+          EOF
+          docker build -t seaweedfs-lab:4.54 "$RUNNER_TEMP/seaweedfs-fuse-image"
+
+      - name: Load benchmark images into Kind
+        run: |
+          kind load docker-image seaweedfs-lab:ganesha-v15.9 --name ganesha-fuse-ci
+          kind load docker-image seaweedfs-lab:4.54 --name ganesha-fuse-ci
+
+      - name: Install local-path storage provisioner
+        run: |
+          kubectl apply -f https://raw.githubusercontent.com/rancher/local-path-provisioner/v0.0.31/deploy/local-path-storage.yaml
+          kubectl -n local-path-storage rollout status deployment/local-path-provisioner --timeout=180s
+
+      - name: Prepare CI manifests
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/ganesha-k8s"
+          for f in 00-namespace.yaml 10-master.yaml 20-volume.yaml 30-filer.yaml; do
+            sed \
+              -e 's/172\.18\.255\.50/10.96.255.250/g' \
+              -e 's/172\.18\.255\.51/10.96.255.251/g' \
+              -e 's/172\.18\.255\.52/10.96.255.252/g' \
+              -e 's/type: LoadBalancer/type: ClusterIP/g' \
+              -e 's/loadBalancerIP:/clusterIP:/g' \
+              -e 's/storageClassName: standard/storageClassName: local-path/g' \
+              -e 's/storage: 60Gi/storage: 2Gi/g' \
+              -e 's/storage: 5Gi/storage: 1Gi/g' \
+              "seaweedfs-lab/k8s/$f" > "$RUNNER_TEMP/ganesha-k8s/$f"
+          done
+          sed \
+            -e 's/172\.18\.255\.50/10.96.255.250/g' \
+            -e 's/172\.18\.255\.51/10.96.255.251/g' \
+            -e 's/172\.18\.255\.52/10.96.255.252/g' \
+            -e 's/type: LoadBalancer/type: NodePort/g' \
+            -e '/loadBalancerIP:/d' \
+            -e 's/cpu: "2"/cpu: "250m"/g' \
+            -e 's/cpu: "8"/cpu: "2"/g' \
+            -e 's/memory: 2Gi/memory: 512Mi/g' \
+            -e 's/memory: 8Gi/memory: 2Gi/g' \
+            seaweedfs-lab/k8s/50-ganesha-fuse.yaml > "$RUNNER_TEMP/ganesha-k8s/50-ganesha-fuse.yaml"
+          # Fail here, with the generated file visible, rather than inside the
+          # benchmark when the service is not a NodePort.  The nodePort itself
+          # is patched after apply: a textual sed cannot tell the Service port
+          # from the readinessProbe's tcpSocket port - both say "2049".
+          grep -q 'type: NodePort' "$RUNNER_TEMP/ganesha-k8s/50-ganesha-fuse.yaml"
+          ! grep -q 'loadBalancerIP' "$RUNNER_TEMP/ganesha-k8s/50-ganesha-fuse.yaml"
+
+      - name: Deploy SeaweedFS and Ganesha/FUSE arm
+        run: |
+          set -euo pipefail
+          kubectl apply -f "$RUNNER_TEMP/ganesha-k8s/00-namespace.yaml"
+          kubectl apply -f "$RUNNER_TEMP/ganesha-k8s/10-master.yaml"
+          kubectl apply -f "$RUNNER_TEMP/ganesha-k8s/20-volume.yaml"
+          kubectl apply -f "$RUNNER_TEMP/ganesha-k8s/30-filer.yaml"
+          kubectl -n seaweedfs rollout status deployment/seaweedfs-master --timeout=180s
+          kubectl -n seaweedfs rollout status statefulset/seaweedfs-volume --timeout=300s
+          kubectl -n seaweedfs rollout status deployment/seaweedfs-filer --timeout=180s
+          kubectl apply -f "$RUNNER_TEMP/ganesha-k8s/50-ganesha-fuse.yaml"
+          # Pin the NodePort that the Kind extraPortMappings exposes.  The
+          # Service is created as NodePort with an assigned port; merge-patch
+          # its single nfs port to 32049 before the benchmark connects.
+          kubectl -n seaweedfs patch svc seaweedfs-ganesha-fuse --type=merge -p \
+            '{"spec":{"ports":[{"name":"nfs","port":2049,"targetPort":2049,"protocol":"TCP","nodePort":32049}]}}'
+          kubectl -n seaweedfs rollout status deployment/seaweedfs-ganesha-fuse --timeout=300s
+          kubectl -n seaweedfs get pods,svc -o wide
+          test "$(kubectl -n seaweedfs get svc seaweedfs-ganesha-fuse \
+            -o jsonpath='{.spec.ports[?(@.name=="nfs")].nodePort}')" = "32049"
+
+      - name: Disable automatic vacuum during the smoke test
+        run: |
+          printf 'lock\nvolume.vacuum.disable\nunlock\nexit\n' \
+            | kubectl -n seaweedfs exec deploy/seaweedfs-master -- \
+                /usr/local/bin/weed shell -master=127.0.0.1:19340
+
+      - name: Make the pod FUSE export writable for the host benchmark user
+        run: |
+          # The FUSE sidecar mounts /mnt/seaweedfs as root (mode 0755) and the
+          # export is Root_Squash.  The host fio runs as the unprivileged
+          # runner (uid 1001), so without this the NFS client cannot create a
+          # file in the export root.  The client is still single-writer; this
+          # is a permission for the test, not a change to the data path.
+          kubectl -n seaweedfs exec deploy/seaweedfs-ganesha-fuse -c fuse -- \
+            chmod 0777 /mnt/seaweedfs
+
+      - name: Run small host-side fio writes through NFS
+        env:
+          FIO: /usr/bin/fio
+          SIZE: 16M
+          CONC_SIZE: 4M
+          GANESHA_NFS_HOST: 127.0.0.1
+          GANESHA_NFS_PORT: 32049
+          NFS_MNT: /mnt/ganesha-kind-ci
+          CSV: ${{ runner.temp }}/ganesha-fuse-kind.csv
+        run: bash seaweedfs-lab/scripts/bench-k8s-ganesha-fuse.sh
+
+      - name: Upload smoke benchmark results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ganesha-fuse-kind-smoke
+          path: ${{ runner.temp }}/ganesha-fuse-kind.csv
+          if-no-files-found: ignore
+
+      - name: Collect Kubernetes diagnostics
+        if: failure()
+        run: |
+          kubectl -n seaweedfs get pods,svc,pvc -o wide || true
+          kubectl -n seaweedfs describe pods || true
+          kubectl -n seaweedfs get events --sort-by=.lastTimestamp | tail -30 || true
+          kubectl -n seaweedfs logs deploy/seaweedfs-ganesha-fuse -c fuse --tail=100 || true
+          kubectl -n seaweedfs logs deploy/seaweedfs-ganesha-fuse -c ganesha --tail=100 || true
+
+      - name: Cleanup NFS mount
+        if: always()
+        run: sudo umount -lf /mnt/ganesha-kind-ci || true
