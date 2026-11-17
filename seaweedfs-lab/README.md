@@ -64,20 +64,21 @@ same durability.**
 **How much of the path is the NFS + Ganesha front end?** The same storage plane was
 measured **without** it — the FUSE gateway and the fio that writes to it in the same
 pod, no NFS and no Ganesha anywhere (the "fourth shape" below). The difference is
-the front end's cost (128 MiB per case, medians of 3 rounds, every case verified to
-have landed):
+the front end's cost (128 MiB per case; the Kubernetes arm is the median of 3 rounds,
+the in-pod arm the median of two 3-round runs = 6 rounds; every case verified to
+have landed, 24/24, zero void):
 
 | case | K8s arm + NFS/Ganesha | in-pod, no front end | front-end cost |
 |---|---|---|---|
-| buffered 1 MiB | 776 | 1016 | 1.31× (24% of the path) |
-| buffered 1 MiB × 8 jobs | 941 | 1000 | 1.06× (6%) |
-| **O_DIRECT 1 MiB** | 229 | **1085** | **4.74× (79%)** |
-| **O_DIRECT 8 MiB** | 749 | **1684** | **2.25× (56%)** |
+| buffered 1 MiB | 776 | 1055 | 1.36× (26% of the path) |
+| buffered 1 MiB × 8 jobs | 941 | 967 | 1.03× (3%) |
+| **O_DIRECT 1 MiB** | 229 | **1332** | **5.82× (83%)** |
+| **O_DIRECT 8 MiB** | 749 | **1642** | **2.19× (54%)** |
 
 Buffered writes barely pay for the front end; **O_DIRECT writes pay for almost all of
 it**, because every WRITE is a stable write and therefore its own fsync. Enlarging
 the block to 8 MiB lets several fsyncs overlap and cuts the front end's share from
-79% to 56%. See `RECOMMENDATIONS.md` §6.
+83% to 54%. See `RECOMMENDATIONS.md` §6.
 
 **Does the packaging cost anything?** The same workload was run against three
 storage backends — bare metal, Docker, Kubernetes — with Ganesha and the FUSE

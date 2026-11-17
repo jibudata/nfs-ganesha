@@ -38,13 +38,30 @@ echo "| case | arm | BW median (MiB/s) | BW min..max | Ganesha WRITE lat (ms) | 
 echo "|---|---|---|---|---|---|---|---|"
 
 awk '
+  function med(a, n,   i, j, t) {
+    if (n == 0) return 0
+    for (i = 2; i <= n; i++) {                 # insertion sort
+      t = a[i]
+      for (j = i - 1; j >= 1 && a[j] > t; j--) a[j + 1] = a[j]
+      a[j + 1] = t
+    }
+    if (n % 2) return a[(n + 1) / 2]
+    return (a[n / 2] + a[n / 2 + 1]) / 2
+  }
   function flush() {
     if (n == 0) return
-    mid = int((n + 1) / 2)
-    med = (n % 2) ? v[mid] : (v[mid] + v[mid+1]) / 2
-    printf "| %s | %s | %.0f | %.0f..%.0f | %s | %s | %s MiB / %s MiB | %d |\n",
-           case_, arm, med, v[1], v[n], lat[mid], cpu[mid], land[mid], wrote[mid], voids
-    n = 0
+    # Every column is ITS OWN median.
+    #
+    # Taking the element at the median index of the bandwidth-sorted array
+    # would couple the latency and the CPU columns to "the round with the
+    # median bandwidth" - which is a different number from the median
+    # latency, and reads as one when the table says "median".  For the bare
+    # arm on buf1M the two differ by 8%: the median-bandwidth round had a
+    # 14.664 ms write latency, the median latency is 13.516 ms.
+    printf "| %s | %s | %.0f | %.0f..%.0f | %.3f | %.3f | %.0f MiB / %.0f MiB | %d |\n",
+           case_, arm, med(v, n), v[1], v[n], med(lat, nlat), med(cpu, ncpu),
+           med(land, nland), med(wrote, nwrote), voids
+    n = 0; nlat = 0; ncpu = 0; nland = 0; nwrote = 0
   }
   {
     if (case_ != $1 || arm != $2) {
@@ -58,12 +75,11 @@ awk '
     # into a median" - this is where that promise is kept.
     voids += $8
     if ($8 == 1) next
-    n++
-    v[n] = $3
-    lat[n] = $4
-    cpu[n] = $5
-    land[n] = $6
-    wrote[n] = $7
+    n++;      v[n] = $3
+    nlat++;   lat[nlat] = $4
+    ncpu++;   cpu[ncpu] = $5
+    nland++;  land[nland] = $6
+    nwrote++; wrote[nwrote] = $7
   }
   END { flush() }
 ' /tmp/ac-sorted.txt

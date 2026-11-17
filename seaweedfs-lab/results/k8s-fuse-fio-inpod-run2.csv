@@ -1,0 +1,13 @@
+round,case,bs,njobs,direct,BW,clat_avg_ms,clat_unit,elapsed_s,wrote_mib,landed_mib,void
+1,buf1M,1M,1,0,1391MiB/s,9.969,ms,0.415,128,128,void=0
+1,odirect1M,1M,1,1,977MiB/s,13.904,ms,0.475,128,128,void=0
+1,odirect8M,8M,1,1,1803MiB/s,32.991,ms,0.454,128,128,void=0
+1,buf8job,1M,8,0,631MiB/s,84.166,ms,0.612,128,128,void=0
+2,odirect1M,1M,1,1,1620MiB/s,8.631,ms,0.392,128,128,void=0
+2,odirect8M,8M,1,1,1561MiB/s,35.311,ms,0.450,128,128,void=0
+2,buf8job,1M,8,0,934MiB/s,7.838,ms,0.562,128,128,void=0
+2,buf1M,1M,1,0,1094MiB/s,12.461,ms,0.445,128,128,void=0
+3,odirect8M,8M,1,1,1422MiB/s,39.183,ms,0.460,128,128,void=0
+3,buf8job,1M,8,0,1320MiB/s,28.205,ms,0.464,128,128,void=0
+3,buf1M,1M,1,0,955MiB/s,13.618,ms,0.469,128,128,void=0
+3,odirect1M,1M,1,1,1580MiB/s,8.885,ms,0.411,128,128,void=0

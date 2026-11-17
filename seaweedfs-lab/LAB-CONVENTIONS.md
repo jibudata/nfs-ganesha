@@ -186,6 +186,14 @@ header promised otherwise:
 - **a per-group counter has to be reset when the group changes.** A `voids` counter
   that is added to but never reset accumulates across every group in the file.
 
+**And one that is easy to miss because the table looks right: every column is its
+OWN median.** Taking the element at the median index of the bandwidth-sorted array
+couples the latency and the CPU columns to "the round that happened to have the
+median bandwidth" — a different number from the median latency, and one that reads
+as the same thing when the column is called a median. For the bare arm on buf1M the
+two differ by 8%: the median-bandwidth round had a 14.664 ms write latency, the
+median latency is 13.516 ms. Sort and take the median per column.
+
 ## 4. CPU accounting
 
 **R9 — Bound the arithmetic.** CPU seconds consumed cannot exceed
@@ -328,6 +336,17 @@ the command instead.
 A comment line that **ends** with a backslash is *not* a continuation: inside a
 comment the backslash is literal and the comment ends at the newline. Only a
 code line can continue into the next one, and the linter knows that.
+
+**An apostrophe inside an `awk '...'` program ends the program.**
+`awk ' ... the bare arm's buf1M ... '` closes the shell's single-quoted string
+at the apostrophe, and everything after it is parsed as **shell** — so the
+script dies with `syntax error near unexpected token '('` pointing at a line
+that looks perfectly innocent. The apostrophe was in a *comment inside the
+awk program*, which is exactly where nobody looks for it.
+
+Two ways out: do not use an apostrophe (`the bare arm on buf1M`), or put the
+awk program in a file. And **always `bash -n` the script after editing an
+embedded awk program** — the linter does not parse awk.
 
 ## 9. The containerised arms
 

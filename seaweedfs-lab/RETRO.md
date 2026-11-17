@@ -748,14 +748,46 @@ The script would then rebuild the image on every run and still not find it.
 It was invisible because the fallback path (`build it, then check again)
 happened to make the script work.
 
+### The second run of the fourth shape, and what it changed
+
+The fourth shape was measured twice (01:50 and 02:21, three rounds each).
+The two datasets disagree by more than the first one suggested: `odirect1M`
+came out at 1085 MiB/s in the first and 1580 in the second, and `buf8job`
+spread 2.09× across six rounds (631..1320 MiB/s).
+
+**Pooling the two datasets and quoting each one's median separately** is what
+turned a single number into a claim a reader can check: the front end's share
+of the path is 3–26% on buffered writes and 54–83% on O_DIRECT, and the
+per-dataset medians (1085 / 1580) show that the O_DIRECT conclusion is not an
+artefact of one run. Keeping only the first dataset would have been the
+tidier-looking choice and the less honest one.
+
+Two more measurement bugs surfaced while checking the numbers against an
+independent recomputation (a Python script that sorts and takes the median
+itself):
+
+- **every column must be its own median.** Taking the element at the median
+  index of the bandwidth-sorted array couples the latency and the CPU columns
+  to "the round that happened to have the median bandwidth" — which is a
+  different number from the median latency, and reads as the same thing when
+  the column is called a median. For the bare arm on buf1M the two differ by
+  8% (14.664 ms vs 13.516 ms).
+- **an apostrophe inside an embedded `awk '...'` program ends it.** A comment
+  reading `the bare arm's buf1M` closed the shell's single-quoted string and
+  turned the rest of the program into shell source, so the script died with
+  `syntax error near unexpected token '('`. The apostrophe was in a comment
+  inside the awk program — exactly where nobody looks for it.
+
 **Apply when:**
 - 任何"把 FUSE 挂载和写它的负载放进同一个容器"的改造:挂载不需要跨 mount namespace,
   前提是写它的人也在里面。
 - 任何 fio 输出解析:**单位必须从括号里取**,不能靠删字符;两个副本(库里的和镜像里的)
   要一起改。
-- 任何"同一个用例跑两次数字差很多"的场景:先确认是不是需要多轮中位数 + 轮转顺序。
+- 任何"同一个用例跑两次数字差很多"的场景:先确认是不是需要多轮中位数 + 轮转顺序;
+  **第二组数据要合并进来并各自列出中位数**,不要挑一组。
 - 任何函数里出现 `local a b` 之后 `$b` 从未被赋值:这在 shell 里不会报错,只会静默地
   匹配空串。
+- 任何内嵌 awk 程序:改完 `bash -n` 过一遍,注释里不要有撇号。
 
 ## Where the improvements landed
 
