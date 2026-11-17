@@ -44,6 +44,18 @@ jobs:
           config: .github/kind-nfs-ci.yaml
           node_image: kindest/node:v1.32.0
 
+      - name: Make the Kind node mount tree shared (FUSE mount propagation)
+        run: |
+          # The arm runs the FUSE gateway and Ganesha in two containers that
+          # share the export emptyDir.  The FUSE mount made in the first
+          # container only reaches the second if the node's mount tree is
+          # shared; a default Kind node is private, so Ganesha's entrypoint
+          # times out waiting for /mnt/seaweedfs (observed in run 44044860182:
+          # fuse Ready, ganesha exit 1 after 120 s).  Make the node shared.
+          node=ganesha-fuse-ci-control-plane
+          docker exec "$node" mount --make-rshared /
+          docker exec "$node" findmnt -no TARGET,PROPAGATION / || true
+
       - name: Build Ganesha image
         run: docker build -f seaweedfs-lab/docker/Dockerfile-ganesha -t seaweedfs-lab:ganesha-v15.9 .
 
@@ -183,6 +195,19 @@ jobs:
           kubectl -n seaweedfs get events --sort-by=.lastTimestamp > "$d/events.txt" 2>&1 || true
           kubectl -n seaweedfs logs deploy/seaweedfs-ganesha-fuse -c fuse --tail=500 > "$d/fuse.log" 2>&1 || true
           kubectl -n seaweedfs logs deploy/seaweedfs-ganesha-fuse -c ganesha --tail=500 > "$d/ganesha.log" 2>&1 || true
+          kubectl -n seaweedfs logs deploy/seaweedfs-ganesha-fuse -c fuse --previous > "$d/fuse-previous.log" 2>&1 || true
+          kubectl -n seaweedfs logs deploy/seaweedfs-ganesha-fuse -c ganesha --previous > "$d/ganesha-previous.log" 2>&1 || true
+          # The sidecars write their real logs to files, not stdout.
+          kubectl -n seaweedfs exec deploy/seaweedfs-ganesha-fuse -c fuse -- \
+            cat /var/log/weed-mount.log > "$d/fuse-mount.log" 2>&1 || true
+          kubectl -n seaweedfs exec deploy/seaweedfs-ganesha-fuse -c ganesha -- \
+            cat /var/log/ganesha/ganesha.log > "$d/ganesha-internal.log" 2>&1 || true
+          # The mount-propagation bug is visible here: the fuse container has
+          # the mount, the ganesha container does not.
+          kubectl -n seaweedfs exec deploy/seaweedfs-ganesha-fuse -c fuse -- \
+            cat /proc/mounts > "$d/fuse-proc-mounts.txt" 2>&1 || true
+          kubectl -n seaweedfs exec deploy/seaweedfs-ganesha-fuse -c ganesha -- \
+            cat /proc/mounts > "$d/ganesha-proc-mounts.txt" 2>&1 || true
           cp -r "$RUNNER_TEMP/ganesha-k8s" "$d/manifests" 2>/dev/null || true
           echo '--- objects ---'
           cat "$d/objects.txt"
