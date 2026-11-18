@@ -22,6 +22,8 @@ CONF=${CONF:-/etc/ganesha/ganesha.conf}
 # every measurement; measure with the cap that matches the machine.
 CONCURRENT_WRITERS=${CONCURRENT_WRITERS:-16}
 CONCURRENT_READERS=${CONCURRENT_READERS:-16}
+# FUSE chunk size.  The default stays 2 MiB; the sustained-write tuning
+# overrides it to 8 MiB to reduce the number of chunk/metadata entries.
 CHUNK_SIZE_LIMIT_MB=${CHUNK_SIZE_LIMIT_MB:-2}
 # Optional: a world-writable directory to create inside the export after
 # the mount is up.  The export is Root_Squash and the FUSE root is owned

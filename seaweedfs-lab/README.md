@@ -4,4 +4,6 @@ The optional [Ganesha + FUSE Pod arm](GANESHA-FUSE-POD.md) runs the SeaweedFS FU
 
 ## Self-contained local test stack
 
-The [ganesha-seaweedfs namespace](k8s/ganesha-seaweedfs/README.md) deploys the full SeaweedFS storage plane, the FUSE mount and Ganesha in one namespace, exposed over a NodePort. It needs no MetalLB and no fixed addresses; drive it with `scripts/k8s-ganesha-seaweedfs.sh up|status|test|down`.
+The [ganesha-seaweedfs namespace](k8s/ganesha-seaweedfs/README.md) deploys the full SeaweedFS storage plane with node-IP hostPorts (no MetalLB), plus the pod-arm FUSE mount and Ganesha, exposed over a NodePort. Drive it with `scripts/k8s-ganesha-seaweedfs.sh up|status|test|down`.
+
+The same backend can be served by a host Ganesha/FUSE arm with `scripts/host-arm-ganesha-seaweedfs.sh up|status|down`; the two-arm procedure and fairness checklist are in [docs/host-vs-pod-comparison.md](../docs/host-vs-pod-comparison.md). The manual performance-test guide is [docs/user-guide-perf.md](../docs/user-guide-perf.md).

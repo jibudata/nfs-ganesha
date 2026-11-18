@@ -6,10 +6,14 @@
 # never received the submount on Kind, so the two halves were collapsed
 # into one image; see k8s/ganesha-entrypoint.sh and GANESHA-FUSE-POD.md.
 #
-# The filer is reached through the in-cluster Service DNS name.  The
-# volume server's address never appears here: the filer returns the
-# registered pod IP to the mount when it asks for a chunk, and pod IPs
-# are routable from this pod.
+# Both FUSE arms use the same node-IP hostPort endpoints:
+#
+#   filer  172.18.0.2:8888   (gRPC 18888)
+#   volume 172.18.0.2:8080   (returned by the filer for each chunk)
+#
+# The host and this pod reach the same addresses, so the SeaweedFS
+# backend is shared and the placement of Ganesha+FUSE is the only
+# variable in the host-vs-pod comparison.
 #
 # The Service is a NodePort for two reasons:
 #   * no MetalLB (or any load-balancer controller) is required; the
@@ -28,7 +32,11 @@ data:
     NFS_CORE_PARAM {
         NFS_Port = 2049;
         RPC_Ioq_ThrdMin = 8;
-        RPC_Ioq_ThrdMax = 16;
+        # The TIRPC ceiling, not a fixed thread count: the pool grows on
+        # demand (~91-95 I/O threads under the 24 GiB / 2-job load).
+        # 200 is the documented default and leaves headroom; the host
+        # arm uses the same value.
+        RPC_Ioq_ThrdMax = 200;
         RPC_Max_Connections = 1024;
         MaxRPCSendBufferSize = 1048576;
         MaxRPCRecvBufferSize = 1048576;
@@ -118,7 +126,7 @@ spec:
             - /usr/local/bin/ganesha-entrypoint
           env:
             - name: FILER
-              value: "seaweedfs-filer.ganesha-seaweedfs.svc.cluster.local:8888"
+              value: "172.18.0.2:8888"
             # The export is Root_Squash, so the FUSE root (owned by root,
             # mode 0755) is not writable by an NFS client.  The entrypoint
             # creates this subdirectory and makes it world-writable after
@@ -126,6 +134,13 @@ spec:
             # itself rejects setattr (EAGAIN), hence a fresh subdirectory.
             - name: EXPORT_SUBDIR
               value: "data"
+            - name: CONCURRENT_WRITERS
+              value: "64"
+            - name: CONCURRENT_READERS
+              value: "64"
+            # 8 MiB chunks reduce metadata/chunk ops for the 24 GiB case.
+            - name: CHUNK_SIZE_LIMIT_MB
+              value: "8"
           securityContext:
             # weed mount needs /dev/fuse and CAP_SYS_ADMIN.
             privileged: true
@@ -168,13 +183,13 @@ spec:
             initialDelaySeconds: 15
             periodSeconds: 15
             failureThreshold: 4
+          # Pod limits removed for the host-vs-pod comparison: the host
+          # arm runs unrestricted, so the pod arm must not be throttled
+          # by a cgroup budget the host side does not have.
           resources:
             requests:
               cpu: 500m
               memory: 512Mi
-            limits:
-              cpu: "4"
-              memory: 8Gi
       volumes:
         - name: fuse-device
           hostPath:
@@ -184,8 +199,14 @@ spec:
         # layer's own state; the data itself is in the volume PVC.
         - name: export-path
           emptyDir: {}
+        # Memory-backed: the chunk cache otherwise writes every chunk to
+        # the node disk and then again to the volume .dat, which measured
+        # ~1.8x write amplification and saturated the disk at ~300 MiB/s.
+        # Bounded so a runaway cache cannot consume the node's memory.
         - name: fuse-cache
-          emptyDir: {}
+          emptyDir:
+            medium: Memory
+            sizeLimit: 512Mi
         - name: fuse-logs
           emptyDir: {}
         - name: ganesha-config

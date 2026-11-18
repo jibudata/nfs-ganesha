@@ -1,8 +1,10 @@
-# Ganesha + SeaweedFS 性能测试指南（宿主机 NFS 客户端）
+# Ganesha + SeaweedFS 性能测试指南（Pod 臂，宿主机 NFS 客户端）
 
 > 适用环境：本地 Kind 集群，命名空间 `ganesha-seaweedfs`
 > 更新日期：2026-11-18
 > 目标：在宿主机上用 NFSv4.1 挂载 Ganesha 导出的 SeaweedFS FUSE 目录，用 fio 执行可重复的写性能测试，并在测试后清理数据、回收 SeaweedFS 空间。
+> 范围：本篇描述 **Pod 臂**（Ganesha + weed FUSE 在 Pod 内）。Host 臂（两者在宿主机、共享同一个 K8s SeaweedFS 后端）见 [host-vs-pod-comparison.md](host-vs-pod-comparison.md)。
+> 完整参数基线（OS / SeaweedFS / Ganesha / weed FUSE / fio / NFS 挂载，含另一节点复现步骤）见 [performance-parameters.md](performance-parameters.md)。
 
 ## 目录
 
@@ -29,10 +31,14 @@
   └─ NFSv4.1 客户端 (/mnt/ganesha-seaweedfs)
        └─ NodePort 32049
             └─ Ganesha Pod ── weed FUSE (/mnt/seaweedfs)
-                 └─ filer Pod ── volume Pod (/data/vol) ── master Pod
+                 └─ 172.18.0.2:8888 filer (hostPort)
+                      └─ 172.18.0.2:8080 volume (/data/vol, hostPort)
+                           └─ 172.18.0.2:9333 master (hostPort)
 ```
 
 - **只有 NFS 客户端（fio）运行在宿主机**；Ganesha、weed FUSE、filer、volume、master 全部在 K8s Pod 内。
+- 后端使用 **node IP + hostPort**（master/filer/volume），不使用 MetalLB/LoadBalancer；host 和 Pod 都通过 `172.18.0.2` 访问同一套后端。
+- Host 臂（Ganesha/FUSE 在宿主机）与同一后端的对比见 [host-vs-pod-comparison.md](host-vs-pod-comparison.md)。
 - 命名空间：`ganesha-seaweedfs`。
 - SeaweedFS 卷大小上限：**4096 MiB（4 GiB）**。
 - 每个单 job 用例建议写 6 GiB，确保跨越多个 4 GiB 卷；8 job 用例为 8 × 1 GiB。
@@ -479,4 +485,5 @@ awk '$2 == "/mnt/ganesha-seaweedfs" {print}' /proc/mounts
 | vacuum 报 `need to run "lock" first` | 先发送 `lock`，再 `volume.vacuum`，最后 `unlock` |
 | vacuum 后 `.dat` 没明显下降 | 只有已删除 chunk 会被回收；有效文件仍占空间 |
 | vacuum 后仍剩几 GiB，`volume.fsck` 报 `orphan:0` | filer change log（`/topics/.system/log/<date>`）仍引用 chunk；用 filer weed shell 的 `fs.rm -r` 删除后再 vacuum；FUSE 中看不到 `/topics` |
+| FUSE 挂载失败 / volume 请求超时 | 检查 node hostPorts：`curl 172.18.0.2:8888/healthz`、`curl 172.18.0.2:8080/healthz`；确认 node 端口未被占用 |
 | 宿主机看不到 `/var/local-path-provisioner` | 该路径在 kind 节点容器内；用 `docker exec kagent-control-plane ls ...` 或 Pod 内 `/data/vol` |

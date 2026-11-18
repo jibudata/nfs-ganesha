@@ -1,16 +1,17 @@
 # =====================================================================
 # SeaweedFS volume server for the ganesha-seaweedfs test stack.
 #
-# The volume server registers its detected pod IP (no -ip flag).  That
-# address is handed to the FUSE client inside the Ganesha pod by the
-# filer (weed/filer/reader_at.go:123 -> dn.Url()), and pod IPs are
-# reachable in-cluster, so the data path stays inside the cluster:
+# The volume server registers the NODE IP (172.18.0.2) and publishes its
+# real port as a hostPort.  That address is handed to the FUSE client by
+# the filer (weed/filer/reader_at.go:123 -> dn.Url()), and it is the
+# SAME address for both arms:
 #
-#   Ganesha pod -> <volume pod IP>:8080/<fileId>
+#   host weed mount -> 172.18.0.2:8080/<fileId>
+#   pod weed mount  -> 172.18.0.2:8080/<fileId>
 #
-# This is deliberately different from the benchmark arm, where the FUSE
-# client is on the host and the registered address must be a fixed
-# MetalLB address.  See LAB-CONVENTIONS R19/R20.
+# Registering the pod IP would work for the pod arm but not for the host
+# arm, so the shared backend uses the node IP + hostPort instead.  See
+# LAB-CONVENTIONS R19/R20.  No MetalLB is involved.
 # =====================================================================
 apiVersion: apps/v1
 kind: StatefulSet
@@ -41,12 +42,14 @@ spec:
           args:
             - -master=false
             - -filer=false
-            # Bind inside the pod; the master records the pod IP.
+            # The address the master records and both FUSE clients use.
+            - -ip=172.18.0.2
+            # Bind inside the pod; the hostPort publishes it on the node.
             - -ip.bind=0.0.0.0
             - -volume.port=8080
             - -volume.port.grpc=18080
-            # The gRPC port is derived as http + 10000 by SeaweedFS.
-            - -master.peers=seaweedfs-master:9333
+            # The master is reached at its hostPort.
+            - -master.peers=172.18.0.2:9333
             - -master.port=9333
             - -master.port.grpc=19333
             - -dir=/data/vol
@@ -59,8 +62,10 @@ spec:
           ports:
             - name: http
               containerPort: 8080
+              hostPort: 8080
             - name: grpc
               containerPort: 18080
+              hostPort: 18080
           volumeMounts:
             - name: vol
               mountPath: /data/vol
@@ -78,8 +83,9 @@ spec:
             requests:
               cpu: 250m
               memory: 256Mi
+            # CPU limit removed for the sustained-write tuning; the
+            # volume server was capped at 2 CPUs on a 16-vCPU node.
             limits:
-              cpu: "2"
               memory: 4Gi
   volumeClaimTemplates:
     - metadata:

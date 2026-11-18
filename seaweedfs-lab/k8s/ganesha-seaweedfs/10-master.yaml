@@ -1,11 +1,20 @@
 # =====================================================================
 # SeaweedFS master for the ganesha-seaweedfs test stack.
 #
-# No -ip is set on purpose.  In the benchmark arm the FUSE gateway runs
-# on the HOST, so the volume server has to register a MetalLB address the
-# host can reach (LAB-CONVENTIONS R19/R20).  Here every SeaweedFS client
-# is a pod, and pod IPs are routable in-cluster, so the process can
-# register its detected pod IP and the Service can stay a ClusterIP.
+# This is a SHARED BACKEND for two Ganesha/FUSE arms: one in a pod and
+# one on the host.  The host's FUSE mount must reach the filer and the
+# volume server, so all three components advertise the NODE IP and
+# publish their real ports as hostPorts:
+#
+#   master  172.18.0.2:9333 / 19333
+#   filer   172.18.0.2:8888 / 18888
+#   volume  172.18.0.2:8080 / 18080
+#
+# No MetalLB/LoadBalancer is involved in the data path.  hostPort also
+# keeps SeaweedFS's gRPC = HTTP + 10000 convention intact, which a
+# NodePort translation would break.  Both the host and pods reach the
+# node IP, so one backend serves both arms.  The Services stay ClusterIP
+# for in-cluster health/status.
 #
 # -vacuumIntervalSeconds=86400 keeps the automatic volume sweep out of a
 # test run; a sweep rewrites whole volumes and resets in-flight chunk
@@ -56,6 +65,8 @@ spec:
             - /usr/local/bin/weed
             - master
           args:
+            # The address the filer and the volume server dial.
+            - -ip=172.18.0.2
             - -ip.bind=0.0.0.0
             - -port=9333
             - -port.grpc=19333
@@ -71,8 +82,10 @@ spec:
           ports:
             - name: http
               containerPort: 9333
+              hostPort: 9333
             - name: grpc
               containerPort: 19333
+              hostPort: 19333
           volumeMounts:
             - name: master-data
               mountPath: /data/master
@@ -92,8 +105,9 @@ spec:
             requests:
               cpu: 100m
               memory: 128Mi
+            # CPU limit removed for the sustained-write tuning; the node
+            # has 16 vCPUs and the master was capped at 1.
             limits:
-              cpu: "1"
               memory: 1Gi
       volumes:
         - name: master-data

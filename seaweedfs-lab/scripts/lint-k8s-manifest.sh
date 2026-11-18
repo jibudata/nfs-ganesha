@@ -13,14 +13,16 @@
 #        the in-flight chunk upload, which wedges the FUSE mount, then
 #        the Ganesha export, then the NFS client.
 #
-#   R20  The address the process REGISTERS and the address the
-#        LoadBalancer hands out must be the SAME address.  SeaweedFS
-#        advertises `-ip`, and that is the address the host's FUSE mount
-#        fetches chunks from (weed/filer/reader_at.go:123 ->
-#        dn.Url() -> <the volume's -ip>:<port>).  A workload that
-#        advertises the pod IP while the Service hands out a different
-#        address is a workload the host cannot reach, and the failure
-#        looks like a slow disk.
+#   R20  The address the process REGISTERS must be an address a client
+#        can reach.  SeaweedFS advertises `-ip`, and that is the address
+#        the FUSE mount fetches chunks from (weed/filer/reader_at.go:123
+#        -> dn.Url() -> <the volume's -ip>:<port>).  There are two
+#        supported ways to satisfy this:
+#          * a LoadBalancer Service with loadBalancerIP == -ip, or
+#          * the node IP as -ip plus a hostPort for the advertised port
+#            (the host and pods both reach the node IP; no LB involved).
+#        A workload that advertises a pod IP is a workload the host
+#        cannot reach, and the failure looks like a slow disk.
 #
 #   R21  The gRPC port must be the HTTP port plus 10000, on both sides:
 #        in the container's arguments and in the Service's ports.  A
@@ -59,8 +61,19 @@ check_file() {
   local adv
   adv=$(grep -oE '^[[:space:]]*-[[:space:]]+-ip=[0-9.]+[[:space:]]*$' "$f" | head -1 | sed -E 's/.*-ip=([0-9.]+).*/\1/')
   if [ -n "$adv" ]; then
-    if ! grep -qE "^[[:space:]]*loadBalancerIP:[[:space:]]*${adv}[[:space:]]*$" "$f"; then
-      fail "R20 the workload advertises -ip=$adv, but no LoadBalancer Service hands out that address; the host's FUSE mount would fetch chunks from an address it cannot route" "$f"
+    if grep -qE "^[[:space:]]*loadBalancerIP:[[:space:]]*${adv}[[:space:]]*$" "$f"; then
+      : # LoadBalancer path
+    else
+      # hostPort path: the registered IP is the node IP, so the
+      # advertised port has to be published on the node too.
+      local advport
+      advport=$(grep -oE '\-volume\.port=[0-9]+' "$f" | head -1 | cut -d= -f2)
+      if [ -z "$advport" ]; then
+        advport=$(grep -oE '(^|[[:space:]])-port=[0-9]+' "$f" | grep -oE '[0-9]+$' | head -1)
+      fi
+      if [ -z "$advport" ] || ! grep -qE "^[[:space:]]*hostPort:[[:space:]]*${advport}[[:space:]]*$" "$f"; then
+        fail "R20 the workload advertises -ip=$adv, but neither a matching loadBalancerIP nor hostPort ${advport:-<unknown>} is published; a host FUSE mount would fetch chunks from an address it cannot route" "$f"
+      fi
     fi
   fi
 
