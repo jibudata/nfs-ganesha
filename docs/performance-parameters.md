@@ -545,24 +545,39 @@ pod 臂（RPC 64 / FUSE 64 / chunk 8 / tmpfs）：360、364、394 MiB/s；pod RP
 初测（1 次样本）的大 IO 数据与此处 r1 吻合（seq-write 408/209/272 vs 417/207/300，
 seq-read 259/321 vs 259/322），差异集中在小 IO/随机写（见下）。
 
-| 用例 | r1 | r2 | r3 | 均值 | IOPS（r1/r2/r3） |
-|---|---:|---:|---:|---:|---|
-| seq-write-1m-buffered | 417 | 333 | 302 | 351 | 416 / 333 / 301 |
-| seq-write-4m-direct | 207 | 151 | 147 | 168 | 51 / 37 / 36 |
-| seq-write-8m-direct | 300 | 241 | 227 | 256 | 37 / 30 / 28 |
-| seq-read-1m-direct | 259 | 274 | 261 | 265 | 258 / 273 / 261 |
-| seq-read-4m-direct | 322 | 303 | 326 | 317 | 80 / 75 / 81 |
-| seq-read-8m-direct | 294 | 300 | 276 | 290 | 36 / 37 / 34 |
-| seq-write-4k-direct（覆盖） | 186 | 178 | 168 | 177 | 46 / 44 / 42 |
-| seq-read-4k-direct | 304 | 302 | 303 | 303 | 77.8k / 77.2k / 77.7k |
-| rand-write-4k-direct | 15.8 | 23.1 | 23.4 | 20.8 | 3 / 5 / 5 |
-| rand-read-4k-direct | 226 | 243 | 236 | 235 | 57.8k / 62.2k / 60.5k |
-| rand-write-64k-direct | 6.6 | 4.9 | 4.0 | 5.2 | 105 / 78 / 64 |
-| rand-read-64k-direct | 2847 | 2822 | 2801 | 2823 | 45.6k / 45.1k / 44.8k |
-| rand-write-1m-direct | 28.5 | 26.5 | 26.0 | 27.0 | 28 / 26 / 25 |
-| rand-read-1m-direct | 5424 | 5384 | 5422 | 5410 | 5.4k / 5.4k / 5.4k |
+| 用例 | fio direct | 结束 fsync | 数据/读状态 | r1 | r2 | r3 | 均值 | IOPS（r1/r2/r3） |
+|---|---|---:|---|---:|---:|---:|---:|---|
+| seq-write-1m-buf | 0（buffered） | yes | 新文件 r1 / 覆盖 r2–3 | 417 | 333 | 302 | 351 | 416 / 333 / 301 |
+| seq-write-4m-dir | 1（O_DIRECT） | yes | 新文件 r1 / 覆盖 r2–3 | 207 | 151 | 147 | 168 | 51 / 37 / 36 |
+| seq-write-8m-dir | 1（O_DIRECT） | yes | 新文件 r1 / 覆盖 r2–3 | 300 | 241 | 227 | 256 | 37 / 30 / 28 |
+| seq-read-1m-dir | 1（O_DIRECT） | — | 单遍冷读 | 259 | 274 | 261 | 265 | 258 / 273 / 261 |
+| seq-read-4m-dir | 1（O_DIRECT） | — | 单遍冷读 | 322 | 303 | 326 | 317 | 80 / 75 / 81 |
+| seq-read-8m-dir | 1（O_DIRECT） | — | 单遍冷读 | 294 | 300 | 276 | 290 | 36 / 37 / 34 |
+| seq-write-4k-dir | 1（O_DIRECT） | yes | 覆盖 | 186 | 178 | 168 | 177 | 46 / 44 / 42 |
+| seq-read-4k-dir | 1（O_DIRECT） | — | 60 s 重复读 | 304 | 302 | 303 | 303 | 77.8k / 77.2k / 77.7k |
+| rand-write-4k-dir | 1（O_DIRECT） | yes | 覆盖 | 15.8 | 23.1 | 23.4 | 20.8 | 3 / 5 / 5 |
+| rand-read-4k-dir | 1（O_DIRECT） | — | 60 s 重复读 | 226 | 243 | 236 | 235 | 57.8k / 62.2k / 60.5k |
+| rand-write-64k-dir | 1（O_DIRECT） | yes | 覆盖 | 6.6 | 4.9 | 4.0 | 5.2 | 105 / 78 / 64 |
+| rand-read-64k-dir | 1（O_DIRECT） | — | 60 s 重复读 | 2847 | 2822 | 2801 | 2823 | 45.6k / 45.1k / 44.8k |
+| rand-write-1m-dir | 1（O_DIRECT） | yes | 覆盖 | 28.5 | 26.5 | 26.0 | 27.0 | 28 / 26 / 25 |
+| rand-read-1m-dir | 1（O_DIRECT） | — | 60 s 重复读 | 5424 | 5384 | 5422 | 5410 | 5.4k / 5.4k / 5.4k |
 
 > 单位：除 seq-write-4k 与 rand-write-4k 为 KiB/s 外，其余为 MiB/s。
+> 命名后缀：`-buf` = buffered（`direct=0`）；`-dir` = direct（`direct=1`，O_DIRECT）。
+
+**IO 模式与 sync 语义（三层要分开看）**：
+
+- **客户端 fio**：只有 `seq-write-1m-buf` 是 buffered（`direct=0`，写走 NFS 客户端
+  page cache）；其余全部 `direct=1`（O_DIRECT，绕过客户端 page cache）。所有用例都用
+  libaio 异步提交（qd=4–32），**没有** per-IO `fsync=1` 的同步写用例。
+- **任务结束**：所有**写**用例都带 `end_fsync=1`（job 结束时把数据/元数据提交到后端）；
+  读用例没有。它不等于同步写——写过程中的每个 IO 仍是异步的，只是结尾多一次 drain。
+- **后端持久性**：整张表跑在 **auto 档**（无 fsync 存储规则，OS 1 s 回写）。
+  `end_fsync=1` 只保证数据到达 volume 页缓存 + filer 提交，**不保证掉电持久**；
+  需要 durable-on-ack 请看 §12.3 的 group-commit / strict 档。
+- **O_DIRECT 的作用域**：只绕过客户端 page cache。服务端对所有用例仍统一经过
+  weed mount 的 4 GiB write buffer、128 MB tmpfs read cache 和 OS 回写（2 GiB / 1 s），
+  所以 `direct=1` 并不能绕过 8 MiB chunk 的 RMW。
 
 **怎么读这张表**：
 
