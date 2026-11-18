@@ -134,6 +134,15 @@ EOF
     # Writes: wait for the backend drain, like the standard benchmark.
     case "$rw" in write|randwrite) echo "end_fsync=1" >> "$job" ;; esac
 
+    # Reads must not re-lay-out the dataset.  fio decides the file is short
+    # (the apparent size seen over this FUSE/NFS stack does not satisfy its
+    # size check) and rewrites all 12 GiB before every read job.  That layout
+    # is outside the timed window, but it churns 12 GiB of chunks per run and
+    # filled all 64 volumes during the first 3-repeat matrix (ENOSPC).  There
+    # is no job-file form of this flag in fio 3.36; --readonly is CLI-only.
+    local ro=()
+    case "$rw" in read|randread) ro=(--readonly) ;; esac
+
     before=$(datsize); case "$before" in ''|*[!0-9]*) before=0 ;; esac
     if [ "$rw" = read ] || [ "$rw" = randread ]; then
       drop_caches
@@ -147,7 +156,7 @@ EOF
     fi
 
     say "=== $case_name run $rep/$REPEAT (rw=$rw bs=$bs direct=$direct qd=$iodepth jobs=$jobs size=$size) ==="
-    timeout "$TIMEOUT" "$FIO" "$job" > "$log" 2>&1
+    timeout "$TIMEOUT" "$FIO" "${ro[@]}" "$job" > "$log" 2>&1
     rc=$?
     [ "$rc" = 0 ] || bad "$case_name rc=$rc; see $log"
 

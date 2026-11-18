@@ -482,6 +482,7 @@ awk '$2 == "/mnt/ganesha-seaweedfs" {print}' /proc/mounts
 | `direct=1` 报 `EINVAL` | 检查挂载参数和 fio 版本；本环境 O_DIRECT 已验证可用 |
 | fio 完成但 `.dat` 不增长 | 等待 flush；确认 `end_fsync=1`、`scramble_buffers=1`；不要写全零 |
 | 文件显示 `nobody` | Root_Squash + NFSv4 ID 映射，正常 |
+| fio 读用例前出现 `Laying out IO file`，随后 `ENOSPC` | fio 会为重读用例重写整个数据集（不在计时窗口内）；脚本已给读用例加 `--readonly`。若卷池已满：删测试数据 → `sync` → rollout restart FUSE pod → `volume.vacuum` |
 | vacuum 报 `need to run "lock" first` | 先发送 `lock`，再 `volume.vacuum`，最后 `unlock` |
 | vacuum 后 `.dat` 没明显下降 | 只有已删除 chunk 会被回收；有效文件仍占空间 |
 | vacuum 后仍剩几 GiB，`volume.fsck` 报 `orphan:0` | filer change log（`/topics/.system/log/<date>`）仍引用 chunk；用 filer weed shell 的 `fs.rm -r` 删除后再 vacuum；FUSE 中看不到 `/topics` |

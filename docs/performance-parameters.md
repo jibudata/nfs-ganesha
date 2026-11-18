@@ -536,37 +536,71 @@ pod 臂（RPC 64 / FUSE 64 / chunk 8 / tmpfs）：360、364、394 MiB/s；pod RP
 - **group-commit 原理**：ack 等待批次 fsync（类似 MySQL group commit），保证已确认写不丢；
   代价是 ack 延迟和 ~25–30% 吞吐。
 
-### 12.4 fio 典型矩阵初测（pod 臂，auto 档）
+### 12.4 fio 典型矩阵（pod 臂，auto 档，3 次重复）
 
 12 GiB 数据集（>2 个 4 GiB 卷）；顺序大 IO 用 size-based；4K/随机用
 `time_based=1, runtime=60`（文件仍为 12 GiB）；读用 `direct=1` 且先 `drop_caches`。
-1 次样本，复测/3 次重复在另一节点完成。
 
-| 用例 | 结果 |
-|---|---|
-| seq-write-1m-buffered | 408 MiB/s |
-| seq-write-4m-direct | 209 MiB/s |
-| seq-write-8m-direct | 272 MiB/s |
-| seq-read-1m-direct | 259 MiB/s |
-| seq-read-4m-direct | 321 MiB/s |
-| seq-read-8m-direct | 首次失败（drop_caches 后 FUSE 瞬时 ENOENT）；脚本已加 dd 预热重试 |
-| seq-write-4k-direct（覆盖已有 12G 文件） | 186 KiB/s / 46 IOPS |
-| seq-read-4k-direct | 304 MiB/s / 77.7k IOPS |
-| rand-write-4k-direct | 14.5 KiB/s / **3 IOPS** |
-| rand-read-4k-direct | 75.2 MiB/s / 19.2k IOPS |
-| rand-write-64k-direct | 383 KiB/s / 5 IOPS |
-| rand-read-64k / rand-1m 读/写 | 本次矩阵被手动停止，未完成 |
+本节是 **2026-11-18 在节点 192.168.3.146 上的同节点 3 次重复**；跨节点复现步骤见第 10 节。
+初测（1 次样本）的大 IO 数据与此处 r1 吻合（seq-write 408/209/272 vs 417/207/300，
+seq-read 259/321 vs 259/322），差异集中在小 IO/随机写（见下）。
 
-**关键发现**：小 IO/随机**写**极慢（3–46 IOPS），而读和顺序大 IO 正常。原因是 8 MiB chunk
-的覆盖写触发 **read-modify-write**（改 4K 也要读写整个 chunk）；顺序 4K 写用例也是对已有
-12 GiB 文件覆盖，所以同样受影响。**该矩阵的 4K/随机会话是覆盖写场景**；追加写（新文件）需另测。
+| 用例 | r1 | r2 | r3 | 均值 | IOPS（r1/r2/r3） |
+|---|---:|---:|---:|---:|---|
+| seq-write-1m-buffered | 417 | 333 | 302 | 351 | 416 / 333 / 301 |
+| seq-write-4m-direct | 207 | 151 | 147 | 168 | 51 / 37 / 36 |
+| seq-write-8m-direct | 300 | 241 | 227 | 256 | 37 / 30 / 28 |
+| seq-read-1m-direct | 259 | 274 | 261 | 265 | 258 / 273 / 261 |
+| seq-read-4m-direct | 322 | 303 | 326 | 317 | 80 / 75 / 81 |
+| seq-read-8m-direct | 294 | 300 | 276 | 290 | 36 / 37 / 34 |
+| seq-write-4k-direct（覆盖） | 186 | 178 | 168 | 177 | 46 / 44 / 42 |
+| seq-read-4k-direct | 304 | 302 | 303 | 303 | 77.8k / 77.2k / 77.7k |
+| rand-write-4k-direct | 15.8 | 23.1 | 23.4 | 20.8 | 3 / 5 / 5 |
+| rand-read-4k-direct | 226 | 243 | 236 | 235 | 57.8k / 62.2k / 60.5k |
+| rand-write-64k-direct | 6.6 | 4.9 | 4.0 | 5.2 | 105 / 78 / 64 |
+| rand-read-64k-direct | 2847 | 2822 | 2801 | 2823 | 45.6k / 45.1k / 44.8k |
+| rand-write-1m-direct | 28.5 | 26.5 | 26.0 | 27.0 | 28 / 26 / 25 |
+| rand-read-1m-direct | 5424 | 5384 | 5422 | 5410 | 5.4k / 5.4k / 5.4k |
+
+> 单位：除 seq-write-4k 与 rand-write-4k 为 KiB/s 外，其余为 MiB/s。
+
+**怎么读这张表**：
+
+- `seq-write-1m/4m/8m` 的 r1 是**新文件**，r2/r3 是**覆盖同一文件**；写吞吐逐次下降
+  （417→333→302、207→151→147、300→241→227）主要是覆盖写触发 8 MiB chunk 的 RMW，
+  不能当成纯 run-to-run 噪声。其余 4K/随机写用例本来就是覆盖 12 GiB 数据集。
+- `seq-read-*` 是 size-based 单遍冷读，可作为后端冷读参考（265–317 MiB/s）。
+- `rand-read-64k/1m` 的 `time_based=60s` 会在 60 s 内反复读同一个 12 GiB 文件；
+  `drop_caches` 只保证第一遍是冷的，后续遍数可能命中宿主 page cache。因此
+  **2.8/5.4 GiB/s 是冷+热混合上界，不是纯后端带宽**；纯冷读请看 `seq-read-*`。
+
+**关键发现**：
+
+- 小 IO/随机**写**仍受 8 MiB chunk 的 RMW 限制：rand-write-4k **3–5 IOPS**（20.8 KiB/s），
+  rand-write-64k 64–105 IOPS（4.0–6.6 MiB/s），rand-write-1m 25–28 IOPS（26–28.5 MiB/s）；
+  同尺寸随机读分别为 57.8k / 45.1k / 5.4k IOPS。
+- 与初测 1 次样本相比，rand-read-4k（75.2→235 MiB/s）和 rand-write-64k
+  （383 KiB/s→5.2 MiB/s）明显更高。初测时 64 个 4 GiB 卷已全部分配、卷内约 220 GiB 是
+  未 vacuum 的已删除 chunk，写路径被空间回收/卷分配拖慢。**小写结论必须在干净卷池上取。**
+- 8M 读的瞬时 ENOENT 已被脚本的 dd 预热 + 重试覆盖，本次 3 次重复全部成功。
+- 大 IO 写：新文件 300–417 MiB/s；覆盖写 147–333 MiB/s。
+
+**本次实测的两个坑**：
+
+- fio 在本栈上会认为 12 GiB 数据集“不够长”，**每个读用例开始前重新 layout 整个 12 GiB 文件**
+  （layout 不在计时窗口内，但每次 churn 12 GiB chunk）。多次重复把 64 个 4 GiB 卷写满后，
+  fio 报 `ENOSPC`。脚本已给读用例加 `--readonly`（fio 3.36 无 job-file 形式），不再 layout。
+- 自动 vacuum 部署时关闭。本次手动 `volume.vacuum` 后 `.dat` 从 244 GiB 回收到 24.2 GiB。
+  清理顺序：删测试数据 → `sync` → rollout restart FUSE pod（flush 120 s 批量删除）→ vacuum。
+  低于 compaction 阈值的残余已删除 chunk（本次 0.86 GiB）不会立即回收，属正常。
+
 下一步建议：在小 IO/随机写负载下测试 `chunkSizeLimitMB=2/4`，并补做“新文件追加 4K 写”对比。
 
 运行：
 
 ```bash
-# pod 臂，auto 档；CASES 可过滤
-CASES=all bash seaweedfs-lab/scripts/bench-ganesha-fio-matrix.sh pod 1
+# pod 臂，auto 档；CASES 可过滤；3 次重复
+CASES=all bash seaweedfs-lab/scripts/bench-ganesha-fio-matrix.sh pod 3
 ```
 
 ---
