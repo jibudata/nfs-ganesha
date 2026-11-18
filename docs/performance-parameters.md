@@ -609,7 +609,8 @@ seq-read 259/321 vs 259/322），差异集中在小 IO/随机写（见下）。
   清理顺序：删测试数据 → `sync` → rollout restart FUSE pod（flush 120 s 批量删除）→ vacuum。
   低于 compaction 阈值的残余已删除 chunk（本次 0.86 GiB）不会立即回收，属正常。
 
-下一步建议：在小 IO/随机写负载下测试 `chunkSizeLimitMB=2/4`，并补做“新文件追加 4K 写”对比。
+小 IO/随机写与 `chunkSizeLimitMB=2/4` 的对比、以及新文件追加 4K 的结果见 §12.6：
+chunk 8 仍最优，追加写比覆盖写快 1.8–3×。
 
 运行：
 
@@ -654,6 +655,39 @@ CASES=all bash seaweedfs-lab/scripts/bench-ganesha-fio-matrix.sh pod 3
   5.2 MiB/s）。本节只用于 **mount 选项的 A/B 差值**；绝对值以 §12.4 为准。
 - 这里的 `sync` 是 **NFS mount 选项**，不是 fio `fsync=1`，也不是 SeaweedFS 的
   fsync 存储规则；后端仍是 auto 档。
+
+### 12.6 chunkSizeLimitMB 8/4/2 对小 IO/随机写的影响（10 GiB）
+
+只改 Ganesha/FUSE 部署的 `CHUNK_SIZE_LIMIT_MB`（pod 重启生效），后端和 fio 参数不变。
+每个配置重建 10 GiB 数据集；用例后删数据、等 130 s、`volume.vacuum`，再切下一个配置。
+4 个用例 × 3 次重复，全部 rc=0；脚本 `seaweedfs-lab/scripts/bench-chunk-size.sh`。
+所有用例 60 s time_based、O_DIRECT、`end_fsync=1`、auto 档；append 用例用
+`file_append=1` 追加到 1 GiB 文件末尾（追加区域与基文件大小无关）。
+
+| 用例 | chunk 8 MiB | chunk 4 MiB | chunk 2 MiB |
+|---|---:|---:|---:|
+| seq-write-4k-overwrite | 254 KiB/s (63) | 276 KiB/s (69) | 173 KiB/s (43) |
+| seq-write-4k-append | 458 KiB/s (114) | 534 KiB/s (133) | 528 KiB/s (132) |
+| rand-write-4k | 28.0 KiB/s (6.7) | 15.0 KiB/s (3.3) | 10.7 KiB/s (2.0) |
+| rand-write-64k | 369 KiB/s (5.3) | 408 KiB/s (6.0) | 340 KiB/s (4.7) |
+
+> 括号内是 3 次平均 IOPS。逐次 IOPS：
+> overwrite 8M 54/67/68、4M 61/74/72、2M 40/44/44；append 8M 145/104/93、4M 177/124/99、2M 181/121/93；
+> rand-4k 8M 7/8/5、4M 5/2/3、2M 4/1/1；rand-64k 8M 8/3/5、4M 6/6/6、2M 5/4/5。
+
+**结论**：
+
+- **chunk 4 对顺序 4K 覆盖写略好（+9%），chunk 2 明显更差（-32%）；随机 4K 随 chunk 变小
+  反而变差（8M 最好），随机 64K 基本持平。** 没有把 chunk 降到 2/4 来救小写的理由，
+  保持 8 MiB。
+- **append 比覆盖写快 1.8–3×**（chunk 8：458 vs 254 KiB/s；chunk 4：534 vs 276；
+  chunk 2：528 vs 173）。这直接验证了 8 MiB chunk 的 RMW 是覆盖写的主要成本。
+- 但即使 append，4K 也只有约 100–180 IOPS（0.4–0.7 MiB/s），说明上限在单 IO 的
+  NFS→Ganesha→FUSE→volume HTTP 路径，而不在 chunk 大小。
+- 随机写的绝对值受卷池状态影响大（每个配置在随机用例前已积累数据集和删除 chunk），
+  3 次样本的 ±噪声不可忽略；顺序写/追加写的结论比随机写稳。
+- 小写优化方向不是 chunk size：避免随机覆盖（append/顺序写）或换写路径（S3 直连等）
+  才有数量级空间。
 
 ---
 
