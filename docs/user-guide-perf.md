@@ -81,6 +81,10 @@ EOF
 # 4) 清理 + 回收（详见第 12 节）
 rm -rf "$TESTDIR"
 sync
+# filer 的 change log 也占 volume chunk，且 FUSE 导出中不可见
+printf 'fs.rm -r /topics/.system/log/%s\nexit\n' "$(date +%F)" | \
+  kubectl -n ganesha-seaweedfs exec -i deploy/seaweedfs-filer -- \
+  /usr/local/bin/weed shell -master=seaweedfs-master:9333 >/dev/null 2>&1 || true
 printf 'lock\nvolume.vacuum\nunlock\nexit\n' | \
   kubectl -n ganesha-seaweedfs exec -i deploy/seaweedfs-master -- \
   /usr/local/bin/weed shell -master=127.0.0.1:9333
@@ -289,6 +293,11 @@ EOF
   rm -rf "$TESTDIR/${tag}-r"*
   sync
 
+  # 清理 filer change log（/topics 在 FUSE 导出中不可见）
+  printf 'fs.rm -r /topics/.system/log/%s\nexit\n' "$(date +%F)" | \
+    kubectl -n ganesha-seaweedfs exec -i deploy/seaweedfs-filer -- \
+    /usr/local/bin/weed shell -master=seaweedfs-master:9333 >/dev/null 2>&1 || true
+
   # 手动 vacuum（必须先 lock）
   printf 'lock\nvolume.vacuum\nunlock\nexit\n' | \
     kubectl -n ganesha-seaweedfs exec -i deploy/seaweedfs-master -- \
@@ -397,7 +406,31 @@ K8S_NS=ganesha-seaweedfs bash \
 
 每隔几秒执行一次，直到数值不再下降。
 
-本环境一次实测：删除后 `.dat` 总量 **123.83 GiB → 71.77 GiB**（约 5 秒），剩余的是仍然存在的旧测试文件。vacuum 只回收**已删除**的 chunk，不会删除有效数据。
+本环境一次实测（删除全部测试数据 + filer change log）：`.dat` 总量 **123.83 GiB → 0.008 GiB**；剩余的 8 MiB 是空卷开销。
+
+### filer 的 change log 也占空间
+
+删除测试文件后，如果 `.dat` 仍剩几 GiB，而 `volume.fsck` 报告 `orphan:0`，那通常是 **filer 的 change log**：
+
+```text
+/topics/.system/log/<date>/
+```
+
+它是 filer 写出的 SeaweedMQ 事件数据。`/topics` **不会出现在 FUSE/NFS 导出中**，所以用 `rm` 删不到；这些 chunk 在 filer 树中仍被引用，因此 fsck 不认为是孤儿，vacuum 也不会回收。
+
+用 filer 的 weed shell 删除，再执行一次 vacuum：
+
+```bash
+printf 'fs.rm -r /topics/.system/log/%s\nexit\n' "$(date +%F)" | \
+  kubectl -n ganesha-seaweedfs exec -i deploy/seaweedfs-filer -- \
+  /usr/local/bin/weed shell -master=seaweedfs-master:9333
+
+printf 'lock\nvolume.vacuum\nunlock\nexit\n' | \
+  kubectl -n ganesha-seaweedfs exec -i deploy/seaweedfs-master -- \
+  /usr/local/bin/weed shell -master=127.0.0.1:9333
+```
+
+> 本环境的 `mq.topic.truncate` / `mq.topic.list` 依赖 MQ broker，当前栈没有部署，会报 `lock broker_balancer not found`；直接用 `fs.rm -r` 删除日期目录即可。
 
 注意：
 
@@ -423,6 +456,7 @@ awk '$2 == "/mnt/ganesha-seaweedfs" {print}' /proc/mounts
 | 宿主机 NFS 客户端 | `/mnt/ganesha-seaweedfs/data` |
 | Ganesha + FUSE Pod | `/mnt/seaweedfs/data` |
 | 逻辑 filer 路径 | `/data/<文件名>` |
+| filer change log（FUSE 不可见） | `/topics/.system/log/<date>/` |
 | volume Pod（PVC） | `/data/vol/*.dat`、`*.idx` |
 | kind 节点内 PV 路径 | `/var/local-path-provisioner/pvc-0fe8..._ganesha-seaweedfs_vol-seaweedfs-volume-0` |
 | 宿主机底层目录 | `/var/lib/docker/volumes/b4df5205.../_data/local-path-provisioner/pvc-0fe8...` |
@@ -444,4 +478,5 @@ awk '$2 == "/mnt/ganesha-seaweedfs" {print}' /proc/mounts
 | 文件显示 `nobody` | Root_Squash + NFSv4 ID 映射，正常 |
 | vacuum 报 `need to run "lock" first` | 先发送 `lock`，再 `volume.vacuum`，最后 `unlock` |
 | vacuum 后 `.dat` 没明显下降 | 只有已删除 chunk 会被回收；有效文件仍占空间 |
+| vacuum 后仍剩几 GiB，`volume.fsck` 报 `orphan:0` | filer change log（`/topics/.system/log/<date>`）仍引用 chunk；用 filer weed shell 的 `fs.rm -r` 删除后再 vacuum；FUSE 中看不到 `/topics` |
 | 宿主机看不到 `/var/local-path-provisioner` | 该路径在 kind 节点容器内；用 `docker exec kagent-control-plane ls ...` 或 Pod 内 `/data/vol` |
