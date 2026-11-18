@@ -1,0 +1,38 @@
+fsync16-1m: (g=0): rw=write, bs=(R) 1024KiB-1024KiB, (W) 1024KiB-1024KiB, (T) 1024KiB-1024KiB, ioengine=libaio, iodepth=16
+fio-3.36
+Starting 1 process
+fsync16-1m: Laying out IO file (1 file / 1500MiB)
+
+fsync16-1m: (groupid=0, jobs=1): err= 0: pid=15689: Wed Nov 18 16:38:57 2026
+  write: IOPS=72, BW=72.1MiB/s (75.6MB/s)(1500MiB/20807msec); 0 zone resets
+    slat (usec): min=307, max=30005, avg=772.87, stdev=898.70
+    clat (usec): min=2, max=458504, avg=207954.79, stdev=72508.16
+     lat (usec): min=489, max=459721, avg=208727.67, stdev=72598.73
+    clat percentiles (msec):
+     |  1.00th=[    7],  5.00th=[   13], 10.00th=[  171], 20.00th=[  186],
+     | 30.00th=[  190], 40.00th=[  194], 50.00th=[  201], 60.00th=[  215],
+     | 70.00th=[  228], 80.00th=[  247], 90.00th=[  288], 95.00th=[  326],
+     | 99.00th=[  376], 99.50th=[  456], 99.90th=[  460], 99.95th=[  460],
+     | 99.99th=[  460]
+   bw (  KiB/s): min=32768, max=98304, per=98.56%, avg=72759.78, stdev=17476.54, samples=41
+   iops        : min=   32, max=   96, avg=71.00, stdev=17.02, samples=41
+  lat (usec)   : 4=0.07%, 500=0.07%, 1000=0.07%
+  lat (msec)   : 2=0.13%, 4=0.27%, 10=2.87%, 20=3.13%, 50=0.40%
+  lat (msec)   : 250=73.60%, 500=19.40%
+  fsync/fdatasync/sync_file_range:
+    sync (msec): min=144, max=453, avg=222.92, stdev=50.07
+    sync percentiles (msec):
+     |  1.00th=[  144],  5.00th=[  180], 10.00th=[  186], 20.00th=[  188],
+     | 30.00th=[  192], 40.00th=[  197], 50.00th=[  205], 60.00th=[  218],
+     | 70.00th=[  230], 80.00th=[  249], 90.00th=[  296], 95.00th=[  326],
+     | 99.00th=[  456], 99.50th=[  456], 99.90th=[  456], 99.95th=[  456],
+     | 99.99th=[  456]
+  cpu          : usr=0.37%, sys=6.66%, ctx=2042, majf=0, minf=29
+  IO depths    : 1=0.1%, 2=0.1%, 4=0.3%, 8=0.5%, 16=105.2%, 32=0.0%, >=64=0.0%
+     submit    : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     complete  : 0=0.0%, 4=99.9%, 8=0.0%, 16=0.1%, 32=0.0%, 64=0.0%, >=64=0.0%
+     issued rwts: total=0,1500,0,0 short=93,0,0,0 dropped=0,0,0,0
+     latency   : target=0, window=0, percentile=100.00%, depth=16
+
+Run status group 0 (all jobs):
+  WRITE: bw=72.1MiB/s (75.6MB/s), 72.1MiB/s-72.1MiB/s (75.6MB/s-75.6MB/s), io=1500MiB (1573MB), run=20807-20807msec

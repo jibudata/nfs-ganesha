@@ -1,0 +1,4 @@
+case,bw,bytes,landed_bytes,rc
+fsync16-1m,72.1MiB/s,1572864000,1572889080,0
+odirect-1m,29.0MiB/s,1572864000,1656162600,0
+odirect-1m,30.1MiB/s,1572864000,1659010840,0

@@ -25,6 +25,7 @@ CONCURRENT_READERS=${CONCURRENT_READERS:-16}
 # FUSE chunk size.  The default stays 2 MiB; the sustained-write tuning
 # overrides it to 8 MiB to reduce the number of chunk/metadata entries.
 CHUNK_SIZE_LIMIT_MB=${CHUNK_SIZE_LIMIT_MB:-2}
+WRITE_BUFFER_SIZE_MB=${WRITE_BUFFER_SIZE_MB:-4096}
 # Optional: a world-writable directory to create inside the export after
 # the mount is up.  The export is Root_Squash and the FUSE root is owned
 # by root with mode 0755, so an NFS client's root cannot create a file at
@@ -54,7 +55,7 @@ ln -snf /proc/mounts /etc/mtab
   -cacheCapacityMB=128 \
   -cacheMetaTtlSec=60 \
   -chunkSizeLimitMB="$CHUNK_SIZE_LIMIT_MB" \
-  -writeBufferSizeMB=4096 \
+  -writeBufferSizeMB="$WRITE_BUFFER_SIZE_MB" \
   -concurrentWriters="$CONCURRENT_WRITERS" \
   -concurrentReaders="$CONCURRENT_READERS" \
   -metadataFlushSeconds=120 \

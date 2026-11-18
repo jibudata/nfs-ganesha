@@ -146,3 +146,13 @@ K8s 臂从不踩这两个坑:master raft 在 PVC 里持久化、volume manifest 
 ### 配置跨机迁移的边界
 
 16 vCPU 机器的最优组合(RPC_Ioq_ThrdMax=128 + FUSE writers=64 + chunk=8MiB)在 8 GiB colima 上**完全无法工作**(连 fio layout 都无法在 600 s 内完成,即便 pod CPU limit 已给满 8 核):4 GiB 写缓冲 + 64×8 MiB 并发在 8 GiB 内存机器上是 R35 类隐患的放大形态。结论:**IO 线程/并发参数必须按机器重标定**(内存、核数、后端盘),不存在跨机通用值;2×vCPU 是防超订阅的保守下限,上限以"后端磁盘 util 接近饱和且 load 不超核数"为界。
+
+### 中档配置严格串行结果(8 vCPU colima,1.5GiB/案例,案例间 vacuum 回收)
+
+| 模式 | K8s 臂(中档配置) | VM 原生臂(参照) | 差距 |
+|---|---|---|---|
+| buffer-1m | **313 MiB/s** | 284 MiB/s | 已追平(+10% 噪声)|
+| fsync16-1m | 72.1 MiB/s | 309 MiB/s | 4.3× |
+| odirect-1m | 29-30.1 MiB/s | 606 MiB/s | ~20× |
+
+严格串行协议:单 fio → 完成 → 停止 → 删测试文件 → `volume.vacuum -garbageThreshold=0.01` 回收(40+ GiB 死数据 → 2.4 GiB)→ 下一案例。buffer 差距已消除(1 GiB 写缓冲在 8 GiB VM 上正确限流);sync 模式剩余 4-20× 差距 = 上传排水经 pod 网络的固有损耗(解除后端 CPU limits 无效,非 CPU 瓶颈),优化方向为 sync 刷盘路径的上传并发或存储面 hostNetwork 部署。
