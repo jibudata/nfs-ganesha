@@ -1,0 +1,110 @@
+# =====================================================================
+# SeaweedFS volume server for the ganesha-seaweedfs test stack.
+#
+# The volume server registers its detected pod IP (no -ip flag).  That
+# address is handed to the FUSE client inside the Ganesha pod by the
+# filer (weed/filer/reader_at.go:123 -> dn.Url()), and pod IPs are
+# reachable in-cluster, so the data path stays inside the cluster:
+#
+#   Ganesha pod -> <volume pod IP>:8080/<fileId>
+#
+# This is deliberately different from the benchmark arm, where the FUSE
+# client is on the host and the registered address must be a fixed
+# MetalLB address.  See LAB-CONVENTIONS R19/R20.
+# =====================================================================
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: seaweedfs-volume
+  namespace: ganesha-seaweedfs
+  labels:
+    app: seaweedfs-volume
+spec:
+  serviceName: seaweedfs-volume
+  replicas: 1
+  selector:
+    matchLabels:
+      app: seaweedfs-volume
+  template:
+    metadata:
+      labels:
+        app: seaweedfs-volume
+    spec:
+      terminationGracePeriodSeconds: 60
+      containers:
+        - name: volume
+          image: seaweedfs-lab:4.54
+          imagePullPolicy: Never
+          command:
+            - /usr/local/bin/weed
+            - server
+          args:
+            - -master=false
+            - -filer=false
+            # Bind inside the pod; the master records the pod IP.
+            - -ip.bind=0.0.0.0
+            - -volume.port=8080
+            - -volume.port.grpc=18080
+            # The gRPC port is derived as http + 10000 by SeaweedFS.
+            - -master.peers=seaweedfs-master:9333
+            - -master.port=9333
+            - -master.port.grpc=19333
+            - -dir=/data/vol
+            - -volume.max=8
+            - -volume.readMode=local
+            - -dataCenter=dc1
+          ports:
+            - name: http
+              containerPort: 8080
+            - name: grpc
+              containerPort: 18080
+          volumeMounts:
+            - name: vol
+              mountPath: /data/vol
+          readinessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          livenessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+            limits:
+              cpu: "2"
+              memory: 4Gi
+  volumeClaimTemplates:
+    - metadata:
+        name: vol
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            # A test namespace, not the 50 GiB benchmark matrix; the
+            # local-path provisioner backs this with a directory on the
+            # node's disk.
+            storage: 20Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: seaweedfs-volume
+  namespace: ganesha-seaweedfs
+  labels:
+    app: seaweedfs-volume
+spec:
+  selector:
+    app: seaweedfs-volume
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+    - name: grpc
+      port: 18080
+      targetPort: grpc

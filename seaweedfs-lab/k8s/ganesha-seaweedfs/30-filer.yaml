@@ -1,0 +1,107 @@
+# =====================================================================
+# SeaweedFS filer for the ganesha-seaweedfs test stack.
+#
+# The filer owns the directory tree that the Ganesha pod's FUSE mount
+# exposes.  The mount dials it through the ClusterIP Service:
+#
+#   FILER=seaweedfs-filer.ganesha-seaweedfs.svc.cluster.local:8888
+#
+# -defaultStoreDir is explicit: without it the filer keeps its LevelDB
+# in the process's working directory, i.e. in the container's writable
+# layer, and the directory tree disappears when the pod is recreated.
+# =====================================================================
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: seaweedfs-filer-data
+  namespace: ganesha-seaweedfs
+  labels:
+    app: seaweedfs-filer
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: seaweedfs-filer
+  namespace: ganesha-seaweedfs
+  labels:
+    app: seaweedfs-filer
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: seaweedfs-filer
+  template:
+    metadata:
+      labels:
+        app: seaweedfs-filer
+    spec:
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: filer
+          image: seaweedfs-lab:4.54
+          imagePullPolicy: Never
+          command:
+            - /usr/local/bin/weed
+            - filer
+          args:
+            - -ip.bind=0.0.0.0
+            - -port=8888
+            - -port.grpc=18888
+            - -master=seaweedfs-master:9333
+            # The directory tree's own store, on a PersistentVolume.
+            - -defaultStoreDir=/data/ldb
+          ports:
+            - name: http
+              containerPort: 8888
+            - name: grpc
+              containerPort: 18888
+          volumeMounts:
+            - name: filer-data
+              mountPath: /data/ldb
+          readinessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          livenessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+            limits:
+              cpu: "2"
+              memory: 4Gi
+      volumes:
+        - name: filer-data
+          persistentVolumeClaim:
+            claimName: seaweedfs-filer-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: seaweedfs-filer
+  namespace: ganesha-seaweedfs
+  labels:
+    app: seaweedfs-filer
+spec:
+  selector:
+    app: seaweedfs-filer
+  ports:
+    - name: http
+      port: 8888
+      targetPort: http
+    - name: grpc
+      port: 18888
+      targetPort: grpc

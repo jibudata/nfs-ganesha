@@ -22,6 +22,14 @@ CONF=${CONF:-/etc/ganesha/ganesha.conf}
 # every measurement; measure with the cap that matches the machine.
 CONCURRENT_WRITERS=${CONCURRENT_WRITERS:-16}
 CONCURRENT_READERS=${CONCURRENT_READERS:-16}
+# Optional: a world-writable directory to create inside the export after
+# the mount is up.  The export is Root_Squash and the FUSE root is owned
+# by root with mode 0755, so an NFS client's root cannot create a file at
+# the top level.  The FUSE root also rejects setattr (EAGAIN), so the
+# chmod has to target a fresh SUBdirectory - the same workaround the CI
+# smoke test uses.  Empty by default: the benchmark arm's behaviour is
+# unchanged.
+EXPORT_SUBDIR=${EXPORT_SUBDIR:-}
 
 mount_visible() {
   awk -v p="$MNT" '$2 == p && $3 == "fuse.seaweedfs" { found=1 } END { exit !found }' /proc/mounts
@@ -85,7 +93,15 @@ if ! mount_visible; then
   cat "$LOG" >&2
   exit 1
 fi
-echo "SeaweedFS FUSE mounted at $MNT from $FILER; starting Ganesha"
+echo "SeaweedFS FUSE mounted at $MNT from $FILER"
+
+if [ -n "$EXPORT_SUBDIR" ]; then
+  mkdir -p "$MNT/$EXPORT_SUBDIR"
+  chmod 0777 "$MNT/$EXPORT_SUBDIR"
+  echo "prepared writable export subdirectory $MNT/$EXPORT_SUBDIR"
+fi
+
+echo "starting Ganesha"
 
 /usr/bin/ganesha.nfsd -F -f "$CONF" -N NIV_EVENT -L /dev/stderr &
 ganesha_pid=$!

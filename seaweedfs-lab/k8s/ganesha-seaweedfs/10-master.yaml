@@ -1,0 +1,115 @@
+# =====================================================================
+# SeaweedFS master for the ganesha-seaweedfs test stack.
+#
+# No -ip is set on purpose.  In the benchmark arm the FUSE gateway runs
+# on the HOST, so the volume server has to register a MetalLB address the
+# host can reach (LAB-CONVENTIONS R19/R20).  Here every SeaweedFS client
+# is a pod, and pod IPs are routable in-cluster, so the process can
+# register its detected pod IP and the Service can stay a ClusterIP.
+#
+# -vacuumIntervalSeconds=86400 keeps the automatic volume sweep out of a
+# test run; a sweep rewrites whole volumes and resets in-flight chunk
+# uploads (R11).  deploy also turns the sweep off at runtime.
+# =====================================================================
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: seaweedfs-master-data
+  namespace: ganesha-seaweedfs
+  labels:
+    app: seaweedfs-master
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: seaweedfs-master
+  namespace: ganesha-seaweedfs
+  labels:
+    app: seaweedfs-master
+spec:
+  replicas: 1
+  # Recreate: two masters on one metadata directory would fight over it.
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: seaweedfs-master
+  template:
+    metadata:
+      labels:
+        app: seaweedfs-master
+    spec:
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: master
+          image: seaweedfs-lab:4.54
+          # The image is built from the lab host's own binary and imported
+          # into the node's containerd; there is no registry to pull from.
+          imagePullPolicy: Never
+          command:
+            - /usr/local/bin/weed
+            - master
+          args:
+            - -ip.bind=0.0.0.0
+            - -port=9333
+            - -port.grpc=19333
+            - -mdir=/data/master
+            - -peers=none
+            - -vacuumIntervalSeconds=86400
+            - -telemetry=false
+            - -volumeSizeLimitMB=30720
+          ports:
+            - name: http
+              containerPort: 9333
+            - name: grpc
+              containerPort: 19333
+          volumeMounts:
+            - name: master-data
+              mountPath: /data/master
+          # A TCP probe, not an HTTP one: the master has no single health
+          # path that stays stable across releases.
+          readinessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          livenessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+      volumes:
+        - name: master-data
+          persistentVolumeClaim:
+            claimName: seaweedfs-master-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: seaweedfs-master
+  namespace: ganesha-seaweedfs
+  labels:
+    app: seaweedfs-master
+spec:
+  selector:
+    app: seaweedfs-master
+  ports:
+    - name: http
+      port: 9333
+      targetPort: http
+    - name: grpc
+      port: 19333
+      targetPort: grpc
