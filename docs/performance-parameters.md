@@ -618,6 +618,43 @@ seq-read 259/321 vs 259/322），差异集中在小 IO/随机写（见下）。
 CASES=all bash seaweedfs-lab/scripts/bench-ganesha-fio-matrix.sh pod 3
 ```
 
+### 12.5 NFS 客户端挂载 sync vs async（写路径，10 GiB）
+
+§12.4 的矩阵使用默认 `async` 挂载。这里只改 **NFS 客户端挂载选项**（`sync` vs 默认
+`async`），后端（auto 档）、fio 参数和 pod 配置都不变。协议：每个模式开始前重建 10 GiB
+数据集；用例结束后删数据、等 130 s（FUSE 删除批量 flush）、手动 `volume.vacuum`，再跑
+下一个模式。7 个写用例 × 3 次重复，全部 rc=0。脚本：
+`seaweedfs-lab/scripts/bench-mount-sync.sh`。
+
+| 用例 | async | sync | sync/async |
+|---|---:|---:|---:|
+| seq-write-1m-buf | 436 MiB/s | **20.9 MiB/s** | **0.05×** |
+| seq-write-4m-dir | 215 MiB/s | 182 MiB/s | 0.85× |
+| seq-write-8m-dir | 285 MiB/s | 260 MiB/s | 0.91× |
+| rand-write-1m-dir | 55.3 MiB/s | 43.4 MiB/s | 0.78× |
+| seq-write-4k-dir | 217 KiB/s | 170 KiB/s | 0.78× |
+| rand-write-4k-dir | 14.9 KiB/s | 14.0 KiB/s | 0.94× |
+| rand-write-64k-dir | 457 KiB/s | 459 KiB/s | 1.00× |
+
+逐次（r1/r2/r3）：
+- `seq-write-1m-buf`：async 502/403/403，sync 24.6/16.6/21.5 MiB/s。
+- `seq-write-4m-dir`：async 248/204/193，sync 219/167/161 MiB/s。
+- `seq-write-8m-dir`：async 311/276/269，sync 287/244/249 MiB/s。
+
+**怎么读**：
+
+- **只对 buffered 写有数量级影响**：`sync` 让每次 buffered write 等服务端提交，
+  1M buffered 从 436 降到 20.9 MiB/s（20×）。这是全部用例里唯一走客户端 page cache 的。
+- **O_DIRECT 大顺序写影响有限**：4M/8M 只慢 9–15%，1M 随机慢 22%。O_DIRECT 已经绕过
+  客户端 page cache，主要成本本来就在服务端 chunk 上传/RMW，mount sync 只额外加提交等待。
+- **4K/64K 随机写几乎不变**：它们已经被 8 MiB chunk 的 RMW 限制在 2–7 IOPS，
+  提交开销相对可忽略。`sync` 不能解决小写问题。
+- **注意本节的绝对数不能与 §12.4 直接比**：10 GiB 块在跑到小写用例前已积累约 160 GiB
+  已删除 chunk，小写吞吐被卷池状态压低（64K 只有 457 KiB/s，而 §12.4 干净卷池是
+  5.2 MiB/s）。本节只用于 **mount 选项的 A/B 差值**；绝对值以 §12.4 为准。
+- 这里的 `sync` 是 **NFS mount 选项**，不是 fio `fsync=1`，也不是 SeaweedFS 的
+  fsync 存储规则；后端仍是 auto 档。
+
 ---
 
 ## 13. 风险与注意事项
