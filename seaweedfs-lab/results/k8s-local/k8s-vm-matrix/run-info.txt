@@ -1,0 +1,3 @@
+date: 2026-11-18T14:03:43+08:00
+fio: fio-3.36
+mount: /mnt/ganesha-k8svm (127.0.0.1:32049) size=10G fsync1=2G

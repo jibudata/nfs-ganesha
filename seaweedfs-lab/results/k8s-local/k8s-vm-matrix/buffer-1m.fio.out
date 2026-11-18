@@ -1,0 +1,7 @@
+buffer-1m: (g=0): rw=write, bs=(R) 1024KiB-1024KiB, (W) 1024KiB-1024KiB, (T) 1024KiB-1024KiB, ioengine=libaio, iodepth=16
+fio-3.36
+Starting 1 process
+fio: pid=270217, err=13/file:filesetup.c:794, func=open(/mnt/ganesha-k8svm/fio/buffer-1m.0), error=Permission denied
+
+
+Run status group 0 (all jobs):

@@ -1,0 +1,13 @@
+[global]
+ioengine=libaio
+rw=write
+bs=1M
+iodepth=16
+size=1500M
+fallocate=none
+scramble_buffers=1
+directory=/mnt/ganesha-native/fio
+filename_format=odirect-8m.$jobnum
+group_reporting=1
+[odirect-8m]
+bs=8M direct=1

@@ -1,0 +1,13 @@
+[global]
+ioengine=libaio
+rw=write
+bs=1M
+iodepth=16
+size=1500M
+fallocate=none
+scramble_buffers=1
+directory=/mnt/ganesha-native/fio
+filename_format=fsync16-1m.$jobnum
+group_reporting=1
+[fsync16-1m]
+bs=1M direct=0 fdatasync=16
