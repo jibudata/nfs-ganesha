@@ -138,3 +138,11 @@ K8s 臂从不踩这两个坑:master raft 在 PVC 里持久化、volume manifest 
 - MaxWrite/PrefWrite=1MiB 保持(NFSv4.1 wsize 上限,不应盲目调大)。
 
 产物:/tmp/{baseline24g,tuned24g}-{host,pod}.log。entrypoint 的 `CHUNK_SIZE_LIMIT_MB` env 化已入码(默认 2 不变,CI 行为不变;16 vCPU 部署以 pod env 设 8)。
+
+### 补充:colima(8 vCPU)上的模式-节流耦合发现
+
+在 8 GiB colima 上的对照发现一个跨环境成立的规律:**同步写(fsync=1)反而显著快于无界 buffer**(K8s 臂 303 vs 43.6 MiB/s @fsync1-2g vs buffer-1m;原生臂 817/72.5 vs 284/19.2 同序)。机理:同步写逐笔穿透管线、绕开客户端脏页节流,而 buffered 写受 `vm.dirty_bytes` 封顶(2 GiB)节流——封顶是 R35 预防的必要条件,但也意味着 buffered 模式的上限由"管线排水速度"决定。
+
+### 配置跨机迁移的边界
+
+16 vCPU 机器的最优组合(RPC_Ioq_ThrdMax=128 + FUSE writers=64 + chunk=8MiB)在 8 GiB colima 上**完全无法工作**(连 fio layout 都无法在 600 s 内完成,即便 pod CPU limit 已给满 8 核):4 GiB 写缓冲 + 64×8 MiB 并发在 8 GiB 内存机器上是 R35 类隐患的放大形态。结论:**IO 线程/并发参数必须按机器重标定**(内存、核数、后端盘),不存在跨机通用值;2×vCPU 是防超订阅的保守下限,上限以"后端磁盘 util 接近饱和且 load 不超核数"为界。
