@@ -50,7 +50,10 @@ spec:
             - -master.port=9333
             - -master.port.grpc=19333
             - -dir=/data/vol
-            - -volume.max=8
+            # 4 GiB volumes and a 6 GiB write: the pool needs more than
+            # the default 8 slots, or the master runs out of writable
+            # volumes after a handful of 4 GiB files.
+            - -volume.max=64
             - -volume.readMode=local
             - -dataCenter=dc1
           ports:

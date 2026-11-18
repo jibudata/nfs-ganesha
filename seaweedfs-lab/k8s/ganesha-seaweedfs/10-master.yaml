@@ -63,7 +63,11 @@ spec:
             - -peers=none
             - -vacuumIntervalSeconds=86400
             - -telemetry=false
-            - -volumeSizeLimitMB=30720
+            # 4 GiB volumes: the host-side benchmark writes past 5 GiB so
+            # the data has to span multiple volume files.  The master
+            # pre-creates the writable pool, so this caps each file at
+            # 4 GiB rather than serialising the writes.
+            - -volumeSizeLimitMB=4096
           ports:
             - name: http
               containerPort: 9333

@@ -32,10 +32,16 @@
 # `user_allow_other` in /etc/fuse.conf is needed because the mount uses
 # -allowOthers, and that option is refused by fusermount unless the file
 # says so.
+#
+# nfs-common is here for the in-cluster NFS client: the same image runs
+# fio against the FUSE mount directly and against Ganesha's NFS export, so
+# both paths are measured with the same fio build.  mount.nfs needs no
+# extra privileges beyond CAP_SYS_ADMIN, but the client pod is privileged
+# for consistency with the FUSE arm.
 FROM ubuntu:24.04
 
 RUN apt-get update \
- && apt-get install -y --no-install-recommends fuse3 ca-certificates fio \
+ && apt-get install -y --no-install-recommends fuse3 ca-certificates fio nfs-common \
  && apt-get clean \
  && find /var/lib/apt/lists -mindepth 1 -delete \
  && printf 'user_allow_other\n' > /etc/fuse.conf \
