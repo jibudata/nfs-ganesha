@@ -1,6 +1,10 @@
-# Additional comparison arm: Ganesha and the SeaweedFS FUSE gateway share a Pod.
-# The host is the NFS client and runs fio. This requires a fixed MetalLB IP at
-# 172.18.255.53 and Kubernetes mount-propagation support.
+# Additional comparison arm: Ganesha and the SeaweedFS FUSE gateway share one
+# container, and therefore one mount namespace.  The host is the NFS client and
+# runs fio.  This requires a fixed MetalLB IP at 172.18.255.53 and the node's
+# /dev/fuse.  No Kubernetes mount-propagation support is needed: an earlier
+# two-container layout (FUSE sidecar + Bidirectional/HostToContainer
+# propagation) never received the submount on Kind, so the mount and the NFS
+# server were collapsed into a single image.
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -11,7 +15,9 @@ data:
     NFS_CORE_PARAM {
         NFS_Port = 2049;
         RPC_Ioq_ThrdMin = 8;
-        RPC_Ioq_ThrdMax = 64;
+        # 2x the vCPU count (8 vCPU -> 16); more threads only oversubscribe
+        # the CPU and pollute measurements (node load 36 on 4 vCPU).
+        RPC_Ioq_ThrdMax = 16;
         RPC_Max_Connections = 1024;
         MaxRPCSendBufferSize = 1048576;
         MaxRPCRecvBufferSize = 1048576;
@@ -72,36 +78,6 @@ data:
         }
         Default_Log_Level = EVENT;
     }
-  weed-mount-entrypoint.sh: |
-    #!/usr/bin/env bash
-    set -euo pipefail
-    SW_BIN=${SW_BIN:-/usr/local/bin/weed}
-    FILER=${FILER:-172.18.255.52:19344}
-    MNT=${MNT:-/mnt/seaweedfs}
-    CACHE=${CACHE:-/cache}
-    LOG=${LOG:-/var/log/weed-mount.log}
-    mkdir -p "$MNT" "$CACHE"
-    "$SW_BIN" mount -filer="$FILER" -dir="$MNT" -volumeName=seaweedfs-ganesha-pod -allowOthers=true -defaultPermissions=true -umask=022 -cacheDir="$CACHE" -cacheCapacityMB=128 -cacheMetaTtlSec=60 -chunkSizeLimitMB=2 -writeBufferSizeMB=4096 -concurrentWriters=128 -concurrentReaders=128 -metadataFlushSeconds=120 -fuse.maxBackground=128 -fuse.congestionThreshold=0 -df.logical -dlm >"$LOG" 2>&1 &
-    mount_pid=$!
-    cleanup() {
-      kill "$mount_pid" 2>/dev/null || true
-      wait "$mount_pid" 2>/dev/null || true
-      fusermount3 -u -z "$MNT" 2>/dev/null || true
-    }
-    trap cleanup EXIT TERM INT
-    for _ in $(seq 1 90); do
-      if awk -v p="$MNT" '$2 == p && $3 == "fuse.seaweedfs" { found=1 } END { exit !found }' /proc/mounts; then
-        wait "$mount_pid"
-        exit $?
-      fi
-      if ! kill -0 "$mount_pid" 2>/dev/null; then
-        cat "$LOG" >&2
-        exit 1
-      fi
-      sleep 1
-    done
-    cat "$LOG" >&2
-    exit 1
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -124,31 +100,38 @@ spec:
     spec:
       terminationGracePeriodSeconds: 30
       containers:
-        - name: fuse
-          image: seaweedfs-lab:4.54
+        # The entrypoint mounts the FUSE export and then runs Ganesha against
+        # it; both live and die together (see k8s/ganesha-entrypoint.sh).
+        - name: ganesha-fuse
+          image: seaweedfs-lab:ganesha-v15.9
           imagePullPolicy: Never
           command:
-            - /bin/bash
-            - /work/weed-mount-entrypoint.sh
+            - /usr/local/bin/ganesha-entrypoint
           env:
             - name: FILER
               value: "172.18.255.52:19344"
           securityContext:
             privileged: true
+          ports:
+            - name: nfs
+              containerPort: 2049
+              protocol: TCP
           volumeMounts:
             - name: fuse-device
               mountPath: /dev/fuse
             - name: export-path
               mountPath: /mnt/seaweedfs
-              mountPropagation: Bidirectional
             - name: fuse-cache
               mountPath: /cache
-            - name: fuse-entrypoint
-              mountPath: /work/weed-mount-entrypoint.sh
-              subPath: weed-mount-entrypoint.sh
             - name: fuse-logs
               mountPath: /var/log
+            - name: ganesha-config
+              mountPath: /etc/ganesha
+              readOnly: true
           readinessProbe:
+            # Same check as the entrypoint: the FUSE mount must be present.
+            # Ganesha follows within seconds; its liveness is covered by the
+            # entrypoint supervisor restarting the container if it exits.
             exec:
               command:
                 - /bin/bash
@@ -163,36 +146,6 @@ spec:
             limits:
               cpu: "8"
               memory: 8Gi
-        - name: ganesha
-          image: seaweedfs-lab:ganesha-v15.9
-          imagePullPolicy: Never
-          command:
-            - /usr/local/bin/ganesha-entrypoint
-          ports:
-            - name: nfs
-              containerPort: 2049
-              protocol: TCP
-          volumeMounts:
-            - name: ganesha-config
-              mountPath: /etc/ganesha
-              readOnly: true
-            - name: export-path
-              mountPath: /mnt/seaweedfs
-              mountPropagation: HostToContainer
-            - name: ganesha-logs
-              mountPath: /var/log/ganesha
-          readinessProbe:
-            tcpSocket:
-              port: 2049
-            initialDelaySeconds: 5
-            periodSeconds: 5
-          resources:
-            requests:
-              cpu: "2"
-              memory: 1Gi
-            limits:
-              cpu: "8"
-              memory: 4Gi
       volumes:
         - name: fuse-device
           hostPath:
@@ -204,15 +157,6 @@ spec:
           emptyDir: {}
         - name: fuse-logs
           emptyDir: {}
-        - name: ganesha-logs
-          emptyDir: {}
-        - name: fuse-entrypoint
-          configMap:
-            name: ganesha-fuse-config
-            defaultMode: 0755
-            items:
-              - key: weed-mount-entrypoint.sh
-                path: weed-mount-entrypoint.sh
         - name: ganesha-config
           configMap:
             name: ganesha-fuse-config

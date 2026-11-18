@@ -94,3 +94,6 @@ gsh_lttng_generation_rules.cmake
 gsh_lttng_generation_file_properties.cmake
 gsh_generated_include
 src/PLUGIN/kmip/libkmip_fscrypt.so
+
+# staged by seaweedfs-lab/scripts/fetch-weed-binary.sh for the image build
+seaweedfs-lab/docker/weed

@@ -7,6 +7,10 @@ LB_IP=${GANESHA_LB_IP:-172.18.255.53}
 NFS_HOST=${GANESHA_NFS_HOST:-$LB_IP}
 NFS_PORT=${GANESHA_NFS_PORT:-2049}
 MNT=${NFS_MNT:-/mnt/ganesha-k8s}
+# Cases write into a subdirectory of the mount, not the mount root: the
+# SeaweedFS FUSE root rejects setattr (EAGAIN), so "chmod 0777 $MNT" cannot
+# make the root writable for the squashed client; a fresh subdirectory can.
+FIO_DIR=${NFS_FIO_DIR:-$MNT/fio}
 FIO=${FIO:-/usr/local/bin/fio}
 SIZE=${SIZE:-512M}
 CONC_SIZE=${CONC_SIZE:-128M}
@@ -17,7 +21,7 @@ CSV=${CSV:-$ARTIFACT_DIR/results.csv}
 [ -x "$FIO" ] || { echo "ERROR: fio executable not found: $FIO" >&2; exit 2; }
 command -v kubectl >/dev/null 2>&1 || { echo "ERROR: kubectl is required for volume landing checks" >&2; exit 2; }
 # /mnt is root-owned on the runner; the NFS mount below hides this directory.
-sudo mkdir -p "$MNT"
+sudo mkdir -p "$MNT" "$FIO_DIR"
 mkdir -p "$ARTIFACT_DIR"
 
 if [ "$NFS_PORT" = 2049 ]; then
@@ -62,7 +66,7 @@ size=$size
 fallocate=none
 end_fsync=1
 scramble_buffers=1
-directory=$MNT
+directory=$FIO_DIR
 filename_format=$name.\$jobnum
 group_reporting=1
 [$name]
@@ -74,8 +78,12 @@ EOF
   [ "$rc" -eq 0 ] || { echo "ERROR: fio failed ($rc)" >&2; return 1; }
   local expected=$(( $(numfmt --from=iec "$size") * jobs ))
   local wait=0
+  # weed buffers up to 4GiB (-writeBufferSizeMB) and uploads asynchronously,
+  # so .dat growth keeps moving well after fio exits; 60 s mis-flags large
+  # cases (measured locally at 10 GiB: 2 GiB landed at +60 s, 10 GiB by +300 s).
+  local land_wait=${LAND_WAIT:-300}
   after=$(bash "$DATSIZE")
-  while [ "$((after - before))" -lt "$((expected / 2))" ] && [ "$wait" -lt 60 ]; do
+  while [ "$((after - before))" -lt "$((expected / 2))" ] && [ "$wait" -lt "$land_wait" ]; do
     sleep 1
     wait=$((wait + 1))
     after=$(bash "$DATSIZE")
@@ -88,7 +96,7 @@ EOF
     echo "ERROR: only $delta bytes reached volume .dat files; case is invalid" >&2
     return 1
   fi
-  rm -f "$MNT/$name".*
+  rm -f "$FIO_DIR/$name".*
 }
 
 run_case buffered-1m 1M 0 1 "$SIZE"

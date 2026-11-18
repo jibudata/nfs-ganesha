@@ -1,17 +1,35 @@
-# Build and run the Ganesha 15.9 benchmark image.
+# Build and run the Ganesha 15.9 benchmark image.  The image also mounts the
+# SeaweedFS FUSE export that Ganesha serves, so it carries `weed` (staged from
+# the pinned SeaweedFS image with scripts/fetch-weed-binary.sh, see below) and
+# fuse3: mount and NFS server share one container, and therefore one mount
+# namespace - no cross-container mount propagation is involved.
 # Build context is the repository root; the helper initializes libntirpc first.
+# UBUNTU_MIRROR exists for builds from networks where archive.ubuntu.com is
+# throttled (e.g. --build-arg UBUNTU_MIRROR=https://mirrors.ustc.edu.cn/ubuntu);
+# CI keeps the default and reads the upstream archive.
+ARG UBUNTU_MIRROR=""
 FROM ubuntu:24.04
+ARG UBUNTU_MIRROR
 
 ENV DEBIAN_FRONTEND=noninteractive
-RUN apt-get update -q \
+RUN if [ -n "$UBUNTU_MIRROR" ]; then \
+      sed -i "s|http://archive.ubuntu.com/ubuntu|$UBUNTU_MIRROR|g; s|http://security.ubuntu.com/ubuntu|$UBUNTU_MIRROR|g" \
+        /etc/apt/sources.list.d/ubuntu.sources; \
+    fi \
+ && apt-get update -q \
  && apt-get install -y --no-install-recommends \
+      bash fuse3 ca-certificates \
       cmake gcc g++ make pkg-config python3 bison flex \
       libssl-dev libkrb5-dev libnfsidmap-dev \
       libdbus-1-dev libcap-dev libattr1-dev libacl1-dev \
       uuid-dev libblkid-dev libaio-dev libjemalloc-dev \
       libtirpc-dev liburcu-dev \
+ && printf 'user_allow_other\n' > /etc/fuse.conf \
  && apt-get clean \
  && rm -rf /var/lib/apt/lists/*
+
+# Stage first: bash seaweedfs-lab/scripts/fetch-weed-binary.sh seaweedfs-lab/docker/weed
+COPY seaweedfs-lab/docker/weed /usr/local/bin/weed
 
 COPY src /src
 RUN cmake -S /src -B /build \
@@ -40,13 +58,15 @@ RUN cmake -S /src -B /build \
       -DUSE_MONITORING=ON \
       -DUSE_GSS=ON \
       -DUSE_NFSIDMAP=DEFAULT_ON \
+      -DRPCBIND=OFF \
  && cmake --build /build --parallel "$(nproc)" \
  && cmake --install /build \
  && ldconfig \
  && ganesha.nfsd -v
 
 COPY seaweedfs-lab/k8s/ganesha-entrypoint.sh /usr/local/bin/ganesha-entrypoint
-RUN chmod 0755 /usr/local/bin/ganesha-entrypoint \
- && mkdir -p /etc/ganesha /var/log/ganesha /mnt/seaweedfs
+RUN chmod 0755 /usr/local/bin/ganesha-entrypoint /usr/local/bin/weed \
+ && ln -snf /proc/mounts /etc/mtab \
+ && mkdir -p /etc/ganesha /var/log/ganesha /var/run/ganesha /var/lib/nfs/ganesha /mnt/seaweedfs /cache
 
 ENTRYPOINT ["/usr/local/bin/ganesha-entrypoint"]

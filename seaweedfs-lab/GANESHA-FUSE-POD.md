@@ -4,20 +4,26 @@ This adds an experimental comparison arm without changing the existing bare-meta
 
 ```text
 host fio -> NFSv4.1/TCP LoadBalancer -> Ganesha container
-         -> SeaweedFS FUSE sidecar in the same Pod -> filer/volume Pods
+         -> SeaweedFS FUSE mount, same container -> filer/volume Pods
 ```
 
-The FUSE and Ganesha containers share an `emptyDir` mountpoint. The FUSE sidecar uses bidirectional mount propagation and the Ganesha container receives propagated mounts (`HostToContainer`). This requires a Kubernetes/container runtime that supports mount propagation; the FUSE container is privileged and needs the node's `/dev/fuse`.
+The FUSE mount and the Ganesha server live in **one container** (image
+`seaweedfs-lab:ganesha-v15.9`, see `k8s/ganesha-entrypoint.sh`), so the export
+Ganesha serves is the FUSE mount itself — one mount namespace, no
+cross-container mount propagation involved.  An earlier two-container layout
+(FUSE sidecar + `Bidirectional`/`HostToContainer` propagation) never received
+the submount on Kind, which is why the design was collapsed.  The container is
+privileged and needs the node's `/dev/fuse`.
 
 The example reserves MetalLB address `172.18.255.53`; add it to the cluster's advertised pool before deploying. The Service exposes only TCP/2049 because this arm is pinned to NFSv4.1 (no NFSv3 mountd/rpcbind ports).
 
-Build the image from this checkout so it matches the Ganesha source revision:
+Build the image from this checkout so it matches the Ganesha source revision; the helper stages the pinned SeaweedFS `weed` binary into the build context first:
 
 ```bash
 bash seaweedfs-lab/scripts/k8s-build-ganesha-image.sh
 ```
 
-Make the SeaweedFS image (`seaweedfs-lab:4.54`) available in the Kubernetes node runtime using the existing `k8s-build-image.sh` flow, then deploy the storage arm and this manifest:
+Deploy the storage arm and this manifest:
 
 ```bash
 bash seaweedfs-lab/scripts/k8s-build-image.sh

@@ -8,6 +8,7 @@ on:
       - 'seaweedfs-lab/docker/Dockerfile-ganesha'
       - 'seaweedfs-lab/k8s/**'
       - 'seaweedfs-lab/scripts/bench-k8s-ganesha-fuse.sh'
+      - 'seaweedfs-lab/scripts/fetch-weed-binary.sh'
       - 'seaweedfs-lab/scripts/k8s-volume-datsize.sh'
       - 'src/**'
   workflow_dispatch:
@@ -44,45 +45,29 @@ jobs:
           config: .github/kind-nfs-ci.yaml
           node_image: kindest/node:v1.32.0
 
-      - name: Create a shared hostPath for the FUSE export
+      - name: Stage the pinned weed binary
+        # Shared by both images: the storage plane (master/filer/volume pods)
+        # and the Ganesha+FUSE pod's FUSE mount must run the same revision, or
+        # the smoke benchmark compares two different SeaweedFS builds.
         run: |
-          # The two-container arm needs the FUSE submount to propagate from
-          # the fuse container to the Ganesha container.  An emptyDir on a
-          # default Kind node stays private and does not propagate (run
-          # 44051984700: fuse saw fuse.seaweedfs, ganesha saw ext4), even
-          # after making the node root shared.  Use a tmpfs that is
-          # explicitly shared and give the pod that hostPath.
-          node=ganesha-fuse-ci-control-plane
-          docker exec "$node" sh -c '
-            mkdir -p /mnt/ganesha-export
-            mountpoint -q /mnt/ganesha-export || mount -t tmpfs -o size=64m tmpfs /mnt/ganesha-export
-            mount --make-shared /mnt/ganesha-export'
-          docker exec "$node" findmnt -no TARGET,PROPAGATION /mnt/ganesha-export
+          docker pull chrislusf/seaweedfs:4.54
+          bash seaweedfs-lab/scripts/fetch-weed-binary.sh \
+            seaweedfs-lab/docker/weed chrislusf/seaweedfs:4.54
 
       - name: Build Ganesha image
+        # The image also carries weed + fuse3 and runs the combined entrypoint
+        # (FUSE mount + NFS server in one mount namespace), so the pod needs no
+        # cross-container mount propagation - which Kind does not deliver for
+        # pod-local volumes (runs 44051984700 and 44054244166).
         run: docker build -f seaweedfs-lab/docker/Dockerfile-ganesha -t seaweedfs-lab:ganesha-v15.9 .
 
-      - name: Build SeaweedFS FUSE image from pinned release binary
+      - name: Build SeaweedFS storage-plane image from the pinned binary
         shell: bash
         run: |
           set -euo pipefail
-          image=chrislusf/seaweedfs:4.54
-          docker pull "$image"
-          cid=$(docker create "$image")
-          trap 'docker rm -f "$cid" >/dev/null 2>&1 || true' EXIT
-          mkdir -p "$RUNNER_TEMP/seaweedfs-fuse-image"
-          copied=0
-          for binary in /usr/bin/weed /usr/local/bin/weed; do
-            if docker cp "$cid:$binary" "$RUNNER_TEMP/seaweedfs-fuse-image/weed" 2>/dev/null; then
-              copied=1
-              break
-            fi
-          done
-          if [ "$copied" -ne 1 ]; then
-            echo 'Could not find weed in the pinned SeaweedFS image' >&2
-            exit 1
-          fi
-          cat > "$RUNNER_TEMP/seaweedfs-fuse-image/Dockerfile" <<'EOF'
+          mkdir -p "$RUNNER_TEMP/seaweedfs-image"
+          cp seaweedfs-lab/docker/weed "$RUNNER_TEMP/seaweedfs-image/weed"
+          cat > "$RUNNER_TEMP/seaweedfs-image/Dockerfile" <<'EOF'
           FROM debian:bookworm-slim
           RUN apt-get update \
            && apt-get install -y --no-install-recommends bash fuse3 ca-certificates \
@@ -92,7 +77,7 @@ jobs:
           COPY weed /usr/local/bin/weed
           RUN chmod 0755 /usr/local/bin/weed
           EOF
-          docker build -t seaweedfs-lab:4.54 "$RUNNER_TEMP/seaweedfs-fuse-image"
+          docker build -t seaweedfs-lab:4.54 "$RUNNER_TEMP/seaweedfs-image"
 
       - name: Load benchmark images into Kind
         run: |
@@ -132,12 +117,6 @@ jobs:
             -e 's/memory: 2Gi/memory: 512Mi/g' \
             -e 's/memory: 8Gi/memory: 2Gi/g' \
             seaweedfs-lab/k8s/50-ganesha-fuse.yaml > "$RUNNER_TEMP/ganesha-k8s/50-ganesha-fuse.yaml"
-          # The arm's export is an emptyDir, which cannot propagate its FUSE
-          # submount on a private node.  Point it at the shared tmpfs created
-          # above instead (the hostPath replaces the emptyDir volume).
-          perl -0pi -e 's/- name: export-path\n(\s+)emptyDir: \{\}/- name: export-path\n$1hostPath:\n$1  path: \/mnt\/ganesha-export\n$1  type: Directory/' \
-            "$RUNNER_TEMP/ganesha-k8s/50-ganesha-fuse.yaml"
-          grep -A3 'name: export-path' "$RUNNER_TEMP/ganesha-k8s/50-ganesha-fuse.yaml"
           # Fail here, with the generated file visible, rather than inside the
           # benchmark when the service is not a NodePort.  The nodePort itself
           # is patched after apply: a textual sed cannot tell the Service port
@@ -174,13 +153,14 @@ jobs:
 
       - name: Make the pod FUSE export writable for the host benchmark user
         run: |
-          # The FUSE sidecar mounts /mnt/seaweedfs as root (mode 0755) and the
+          # The entrypoint mounts /mnt/seaweedfs as root (mode 0755) and the
           # export is Root_Squash.  The host fio runs as the unprivileged
-          # runner (uid 1001), so without this the NFS client cannot create a
-          # file in the export root.  The client is still single-writer; this
-          # is a permission for the test, not a change to the data path.
-          kubectl -n seaweedfs exec deploy/seaweedfs-ganesha-fuse -c fuse -- \
-            chmod 0777 /mnt/seaweedfs
+          # runner (uid 1001), so without a writable directory the NFS client
+          # cannot create a file.  The chmod must target a fresh SUBdirectory:
+          # the SeaweedFS FUSE root rejects setattr (EAGAIN).  The bench
+          # script writes into $NFS_MNT/fio accordingly.
+          kubectl -n seaweedfs exec deploy/seaweedfs-ganesha-fuse -c ganesha-fuse -- \
+            sh -c 'mkdir -p /mnt/seaweedfs/fio && chmod 0777 /mnt/seaweedfs/fio'
 
       - name: Run small host-side fio writes through NFS
         env:
@@ -202,28 +182,23 @@ jobs:
           kubectl -n seaweedfs get pods,svc,pvc -o wide > "$d/objects.txt" 2>&1 || true
           kubectl -n seaweedfs describe pods > "$d/describe.txt" 2>&1 || true
           kubectl -n seaweedfs get events --sort-by=.lastTimestamp > "$d/events.txt" 2>&1 || true
-          kubectl -n seaweedfs logs deploy/seaweedfs-ganesha-fuse -c fuse --tail=500 > "$d/fuse.log" 2>&1 || true
-          kubectl -n seaweedfs logs deploy/seaweedfs-ganesha-fuse -c ganesha --tail=500 > "$d/ganesha.log" 2>&1 || true
-          kubectl -n seaweedfs logs deploy/seaweedfs-ganesha-fuse -c fuse --previous > "$d/fuse-previous.log" 2>&1 || true
-          kubectl -n seaweedfs logs deploy/seaweedfs-ganesha-fuse -c ganesha --previous > "$d/ganesha-previous.log" 2>&1 || true
-          # The sidecars write their real logs to files, not stdout.
-          kubectl -n seaweedfs exec deploy/seaweedfs-ganesha-fuse -c fuse -- \
-            cat /var/log/weed-mount.log > "$d/fuse-mount.log" 2>&1 || true
-          kubectl -n seaweedfs exec deploy/seaweedfs-ganesha-fuse -c ganesha -- \
+          kubectl -n seaweedfs logs deploy/seaweedfs-ganesha-fuse -c ganesha-fuse --tail=500 > "$d/ganesha-fuse.log" 2>&1 || true
+          kubectl -n seaweedfs logs deploy/seaweedfs-ganesha-fuse -c ganesha-fuse --previous > "$d/ganesha-fuse-previous.log" 2>&1 || true
+          # weed's own output goes to a file inside the container, not stdout.
+          kubectl -n seaweedfs exec deploy/seaweedfs-ganesha-fuse -c ganesha-fuse -- \
+            cat /var/log/weed-mount.log > "$d/weed-mount.log" 2>&1 || true
+          kubectl -n seaweedfs exec deploy/seaweedfs-ganesha-fuse -c ganesha-fuse -- \
             cat /var/log/ganesha/ganesha.log > "$d/ganesha-internal.log" 2>&1 || true
-          # The mount-propagation bug is visible here: the fuse container has
-          # the mount, the ganesha container does not.
-          kubectl -n seaweedfs exec deploy/seaweedfs-ganesha-fuse -c fuse -- \
-            cat /proc/mounts > "$d/fuse-proc-mounts.txt" 2>&1 || true
-          kubectl -n seaweedfs exec deploy/seaweedfs-ganesha-fuse -c ganesha -- \
-            cat /proc/mounts > "$d/ganesha-proc-mounts.txt" 2>&1 || true
+          # Single mount namespace: fuse.seaweedfs must be right here.
+          kubectl -n seaweedfs exec deploy/seaweedfs-ganesha-fuse -c ganesha-fuse -- \
+            cat /proc/mounts > "$d/pod-proc-mounts.txt" 2>&1 || true
           cp -r "$RUNNER_TEMP/ganesha-k8s" "$d/manifests" 2>/dev/null || true
           echo '--- objects ---'
           cat "$d/objects.txt"
-          echo '--- fuse log tail ---'
-          tail -50 "$d/fuse.log"
-          echo '--- ganesha log tail ---'
-          tail -50 "$d/ganesha.log"
+          echo '--- ganesha-fuse log tail ---'
+          tail -50 "$d/ganesha-fuse.log"
+          echo '--- weed mount log tail ---'
+          tail -50 "$d/weed-mount.log"
 
       - name: Upload benchmark artifacts (raw fio + logs)
         if: always()

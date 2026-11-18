@@ -12,6 +12,10 @@ cd "$ROOT"
 git rev-parse --is-inside-work-tree >/dev/null
 # nTIRPC and its nested prometheus headers are required by the build.
 git submodule update --init --recursive --depth 1 src/libntirpc
+# The Ganesha image also mounts the FUSE export it serves; the weed binary has
+# to be staged into the build context first (the image COPYs it).
+bash seaweedfs-lab/scripts/fetch-weed-binary.sh \
+  seaweedfs-lab/docker/weed "${WEED_IMAGE:-chrislusf/seaweedfs:4.54}"
 printf 'Building Ganesha image %s from %s\n' "$IMAGE" "$(git rev-parse HEAD)"
 docker build -f seaweedfs-lab/docker/Dockerfile-ganesha -t "$IMAGE" .
 docker run --rm --entrypoint ganesha.nfsd "$IMAGE" -v

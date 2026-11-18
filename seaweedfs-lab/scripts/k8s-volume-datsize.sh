@@ -47,4 +47,6 @@ DIR=${K8S_VOLUME_DIR:-/data/vol}
 
 out=$("$KUBECTL" -n "$NS" exec "$POD" -- \
         find "$DIR" -maxdepth 3 -name '*.dat' -printf '%s\n' 2>/dev/null)
-printf '%s\n' "$out" | awk '{ s += $1 } END { printf "%d", s + 0 }'
+# %.0f, not %d: mawk (the default awk on ubuntu runners) truncates %d to
+# 32 bits, so any total over 2GiB wraps; a double is exact to 2^53.
+printf '%s\n' "$out" | awk '{ s += $1 } END { printf "%.0f", s + 0 }'
