@@ -83,3 +83,33 @@ docker exec <node> bash -c 'prlimit --pid $(pgrep -x containerd|head -1) --nofil
 2. NodePort vs MetalLB-IP 正式对照、host 侧 fio,在 lab 主机(MetalLB + root 权限)做
 3. `-chunkSizeLimitMB`(2 → 8-16MiB)对照,针对 L0→L1 的 ÷3-5
 4. Ganesha worker/线程、weed buffer 参数在裸金属上的扫描(本地噪声不足以分辨)
+
+## 九、VM 原生对照臂(非 K8s):定位 pod/容器层影响
+
+同一个 VM、同一块盘、同一个内核 NFS client(节点),把同一套 Ganesha V15.9 + weed 4.54(同二进制、同 flags、threads=16)以**裸进程**方式跑在 VM 上(master/volume/filer 127.0.0.1:19350-19354,weed FUSE 挂载,ganesha 0.0.0.0:20490),与 K8s pod 臂对照。
+
+### 调试中发现并修复的两个配置问题
+
+1. 原生脚本漏了 volume server 的 `-master.peers` → 永不向 master 注册("0 node candidates")→ AssignVolume 全挂起 → NFS 写静默丢失(fio rc=0 但文件停在 ~1GiB、filer file_count=0)。
+2. fork master 的**状态丢失保护**:重建 raft 后 volume growth 保持冻结("volume growth is frozen after master state loss"),同样让 AssignVolume 挂起。解法:`volume.growth.resume`(已固化进原生臂启动脚本,每次 start 自动执行)。
+
+K8s 臂从不踩这两个坑:master raft 在 PVC 里持久化、volume manifest 自带 master.peers。**用户假设成立:是配置问题,不是代码缺陷。**
+
+### 修复后的对照结果(同 VM、同内核 client、同 fio、1.5GiB O_DIRECT 1M 顺序)
+
+| 臂 | O_DIRECT 1M | buffer 1M |
+|---|---|---|
+| VM 原生裸进程(无 docker 无 K8s) | **606 MiB/s** | 284 MiB/s |
+| K8s pod 臂(NodePort 32049) | 40.8 MiB/s | 43.6-48.8 MiB/s |
+
+原生臂其余模式:fsync16 309 / fsync1(512MiB)817 MiB/s,全部落盘精确。
+
+### 归属解读
+
+同栈裸进程与 pod 化之间存在 **一个数量级** 的差距(15×@odirect)。构成:① pod 化把 filer/volume 从"与 mount 同机的本地进程"变成"跨 ClusterIP 的 pod"(每个 2MiB chunk 上传多一跳 RPC 往返,延迟而非带宽——网络层带宽已证零损耗);② NFS→Ganesha→FUSE→weed→filer→volume 六段链路的每操作延迟在 O_DIRECT 同步写下逐层复利;③ pod 的 cgroup 内存上限客观上起到了限流护栏作用(原生无上限的 weed 在 8GiB VM 上出现过 >2GiB 写入时 mount→filer grpc 断链楔死,D 状态堆积 load 59,恢复用 FUSE abort + 重启 mount/ganesha;详见 results/k8s-local/native-arm-finding/)。
+
+### 原生臂遗留事项
+
+- >2GiB 持续写仍可楔死 mount→filer grpc(3 次,D 堆积),需 weed goroutine dump 定位;
+- ganesha/weedmount 任一重启后 NFS client 必须重挂(句柄过期,R10);
+- 原生臂启动脚本已含 growth.resume 修复,归档于 results/k8s-local/native-arm-finding/native-arm-setup.sh。
