@@ -1,0 +1,22 @@
+# =====================================================================
+# A self-contained Ganesha + SeaweedFS test stack.
+#
+# Unlike the benchmark arm in seaweedfs-lab/k8s/ (namespace "seaweedfs"),
+# this stack is not a measurement rig: every component lives in the
+# cluster, nothing depends on MetalLB or on a fixed address, and the
+# whole thing can be created and destroyed as one namespace.
+#
+#   client -> NodePort 32049 -> Ganesha
+#          -> FUSE mount (same container)
+#          -> filer -> volume server -> master
+#
+# The Ganesha/FUSE container is still the single-image design from
+# k8s/ganesha-entrypoint.sh: the mount and the NFS server share one mount
+# namespace, which is the only layout that works on Kind.
+# =====================================================================
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ganesha-seaweedfs
+  labels:
+    app.kubernetes.io/part-of: nfs-ganesha-write-io-lab

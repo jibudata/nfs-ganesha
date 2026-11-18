@@ -1,0 +1,117 @@
+# =====================================================================
+# SeaweedFS filer for the ganesha-seaweedfs test stack.
+#
+# The filer owns the directory tree that both FUSE arms expose.  It
+# registers the NODE IP and publishes HTTP 8888 and gRPC 18888 as
+# hostPorts, so the host and pod mounts use the same endpoint:
+#
+#   FILER=172.18.0.2:8888
+#   (gRPC is derived as HTTP + 10000 = 18888, also a hostPort)
+#
+# Both addresses are in the master's lock ring, so the host mount can
+# resolve them too.  The Service stays ClusterIP for in-cluster status.
+#
+# -defaultStoreDir is explicit: without it the filer keeps its LevelDB
+# in the process's working directory, i.e. in the container's writable
+# layer, and the directory tree disappears when the pod is recreated.
+# =====================================================================
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: seaweedfs-filer-data
+  namespace: ganesha-seaweedfs
+  labels:
+    app: seaweedfs-filer
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: seaweedfs-filer
+  namespace: ganesha-seaweedfs
+  labels:
+    app: seaweedfs-filer
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: seaweedfs-filer
+  template:
+    metadata:
+      labels:
+        app: seaweedfs-filer
+    spec:
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: filer
+          image: seaweedfs-lab:4.54
+          imagePullPolicy: Never
+          command:
+            - /usr/local/bin/weed
+            - filer
+          args:
+            # The address both FUSE clients dial and the master records.
+            - -ip=172.18.0.2
+            - -ip.bind=0.0.0.0
+            - -port=8888
+            - -port.grpc=18888
+            - -master=172.18.0.2:9333
+            # The directory tree's own store, on a PersistentVolume.
+            - -defaultStoreDir=/data/ldb
+          ports:
+            - name: http
+              containerPort: 8888
+              hostPort: 8888
+            - name: grpc
+              containerPort: 18888
+              hostPort: 18888
+          volumeMounts:
+            - name: filer-data
+              mountPath: /data/ldb
+          readinessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          livenessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+            # CPU limit removed for the sustained-write tuning; the
+            # filer was capped at 2 CPUs on a 16-vCPU node.
+            limits:
+              memory: 4Gi
+      volumes:
+        - name: filer-data
+          persistentVolumeClaim:
+            claimName: seaweedfs-filer-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: seaweedfs-filer
+  namespace: ganesha-seaweedfs
+  labels:
+    app: seaweedfs-filer
+spec:
+  selector:
+    app: seaweedfs-filer
+  ports:
+    - name: http
+      port: 8888
+      targetPort: http
+    - name: grpc
+      port: 18888
+      targetPort: grpc

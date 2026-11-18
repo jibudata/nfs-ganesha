@@ -1,0 +1,9 @@
+# iperf3 TCP ladder, kind node (ganesha-fuse-ci-control-plane) as client,
+# server pod netbench (seaweedfs namespace), 8s per stream, 2026-11-17.
+# Single-stream receiver aggregate:
+#   node -> podIP 10.244.0.38:5201        36861 Mbits/sec
+#   node -> ClusterIP:5201                33442 Mbits/sec
+#   node -> NodePort 127.0.0.1:31875      33055 Mbits/sec
+# Conclusion: the Service/kube-proxy layer adds no measurable cost at this
+# scale; a MetalLB L2 arm is expected to behave the same (ARP + same DNAT)
+# and is to be confirmed on the lab host.

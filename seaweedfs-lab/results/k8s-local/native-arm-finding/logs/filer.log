@@ -1,0 +1,865 @@
+I1118 09:29:58.403410 filer.go:411 Initialized credential manager: filer_etc
+I1118 09:29:58.410439 filer_server.go:295 default to create filer store dir in /mnt/lima-colima/native-arm/ldb/filerldb2
+I1118 09:29:58.415008 filer_server.go:303 max_file_name_length 255
+I1118 09:29:58.434903 leveldb2_store.go:94 filer store leveldb2 dir: /mnt/lima-colima/native-arm/ldb/filerldb2
+I1118 09:29:58.434976 file_util.go:29 Folder /mnt/lima-colima/native-arm/ldb/filerldb2 Permission: -rwxr-xr-x
+I1118 09:29:58.748913 filer.go:435 create filer.store.id to 1540817559
+I1118 09:29:58.749255 configuration.go:29 configured filer store to leveldb2
+I1118 09:29:58.749653 filer_server_tus_session.go:637 TUS session cleanup started with interval 1h0m0s
+I1118 09:29:58.752159 master_client.go:27 the cluster has 0 filers
+I1118 09:29:59.630906 master_client.go:27 the cluster has 0 filers
+I1118 09:30:00.632377 master_client.go:27 the cluster has 0 filers
+I1118 09:30:01.635634 master_client.go:27 the cluster has 0 filers
+I1118 09:30:01.638220 master_client.go:27 the cluster has 0 filers
+I1118 09:30:01.638291 filer_server.go:399 127.0.0.1:19354 bootstrap from peers []
+I1118 09:30:01.638414 filer.go:273 127.0.0.1:19354 aggregate from peers []
+I1118 09:30:01.649409 filer.go:495 Start Seaweed Filer 30GB 4.54 5ef99c1d8 at 127.0.0.1:19354
+I1118 09:30:01.649296 meta_aggregator.go:465 loopSubscribeToOneFiler read 127.0.0.1:19354 start from 2026-11-18 09:29:01.638269501 +0800 CST 1794965341638269501
+W1118 09:30:01.651159 filer.go:530 IAM gRPC service on filer is UNAUTHENTICATED: anyone who can reach this port can create users and policies, and its OIDC provider and role RPCs are refused; set jwt.filer_signing.key in security.toml to require an admin Bearer token
+I1118 09:30:01.655868 meta_aggregator.go:647 subscribing remote 127.0.0.1:19354 meta change: 2026-11-18 09:29:01.638269501 +0800 CST, clientId:619873489
+I1118 09:30:01.657517 filer_grpc_server_sub_meta.go:1725 + local listener filer:127.0.0.1:19354.29354@127.0.0.1:37122 clientId -619873489 clientEpoch 1
+I1118 09:30:01.657580 filer_grpc_server_sub_meta.go:1117  + filer:127.0.0.1:19354.29354@127.0.0.1:37122 local subscribe / from {Time:2026-11-18 01:29:01.638269501 +0000 UTC Offset:-7 IsOffsetBased:false} clientId:-619873489
+I1118 09:30:01.658010 master_client.go:27 the cluster has 0 filers
+I1118 09:30:02.661248 master_client.go:27 the cluster has 0 filers
+I1118 09:30:03.663401 master_client.go:27 the cluster has 0 filers
+I1118 09:30:04.664573 master_client.go:27 the cluster has 0 filers
+I1118 09:30:04.665375 master_client.go:27 the cluster has 0 filers
+I1118 09:30:05.673496 master_client.go:27 the cluster has 0 filers
+I1118 09:30:06.675423 master_client.go:27 the cluster has 0 filers
+I1118 09:30:07.676544 master_client.go:27 the cluster has 0 filers
+I1118 09:30:08.678614 master_client.go:27 the cluster has 0 filers
+I1118 09:30:08.679080 master_client.go:27 the cluster has 0 filers
+I1118 09:30:09.577508 master_client.go:27 the cluster has 0 filers
+I1118 09:30:10.578675 master_client.go:27 the cluster has 0 filers
+I1118 09:30:11.580017 master_client.go:27 the cluster has 0 filers
+I1118 09:30:12.358945 filer_grpc_server_sub_meta.go:1725 + local listener mount@127.0.0.1:45406 clientId -1299451034 clientEpoch 2
+I1118 09:30:12.358977 filer_grpc_server_sub_meta.go:1117  + mount@127.0.0.1:45406 local subscribe / from {Time:2026-11-18 01:30:12.356212031 +0000 UTC Offset:-7 IsOffsetBased:false} clientId:-1299451034
+I1118 09:30:12.582367 master_client.go:27 the cluster has 0 filers
+I1118 09:30:12.583200 master_client.go:27 the cluster has 0 filers
+I1118 09:30:12.584994 masterclient.go:544 updateVidMap ignore short heartbeat: volume_location:{leader:"127.0.0.1:19350.29350"}
+I1118 09:30:12.585329 masterclient.go:465 + filer@127.0.0.1:19354 noticed .filer 127.0.0.1:19354.29354
+I1118 09:30:12.585361 masterclient.go:465 + filer@127.0.0.1:19354 noticed .filer 127.0.0.1:19354.29354
+I1118 09:30:13.587088 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794965413584963529: [127.0.0.1:19354.29354]
+I1118 09:30:13.587235 filer.go:295 LockRing: applying master ring update v1794965413584963529: [127.0.0.1:19354]
+I1118 09:30:43.235741 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794965443233634805: [127.0.0.1:19354.29354]
+I1118 09:30:43.235993 filer.go:295 LockRing: applying master ring update v1794965443233634805: [127.0.0.1:19354]
+I1118 09:31:12.904050 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794965472900473559: [127.0.0.1:19354.29354]
+I1118 09:31:12.904926 filer.go:295 LockRing: applying master ring update v1794965472900473559: [127.0.0.1:19354]
+I1118 09:31:42.696724 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794965502694325808: [127.0.0.1:19354.29354]
+I1118 09:31:42.697120 filer.go:295 LockRing: applying master ring update v1794965502694325808: [127.0.0.1:19354]
+I1118 09:32:12.330356 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794965532325993536: [127.0.0.1:19354.29354]
+I1118 09:32:12.330996 filer.go:295 LockRing: applying master ring update v1794965532325993536: [127.0.0.1:19354]
+I1118 09:32:42.009293 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794965562006646306: [127.0.0.1:19354.29354]
+I1118 09:32:42.010629 filer.go:295 LockRing: applying master ring update v1794965562006646306: [127.0.0.1:19354]
+I1118 09:33:11.663562 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794965591660578347: [127.0.0.1:19354.29354]
+I1118 09:33:11.664936 filer.go:295 LockRing: applying master ring update v1794965591660578347: [127.0.0.1:19354]
+I1118 09:33:41.307040 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794965621306361644: [127.0.0.1:19354.29354]
+I1118 09:33:41.307139 filer.go:295 LockRing: applying master ring update v1794965621306361644: [127.0.0.1:19354]
+I1118 09:34:11.074645 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794965651074003561: [127.0.0.1:19354.29354]
+I1118 09:34:11.074706 filer.go:295 LockRing: applying master ring update v1794965651074003561: [127.0.0.1:19354]
+I1118 09:34:40.704681 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794965680703892346: [127.0.0.1:19354.29354]
+I1118 09:34:40.704754 filer.go:295 LockRing: applying master ring update v1794965680703892346: [127.0.0.1:19354]
+I1118 09:35:10.358837 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794965710357859576: [127.0.0.1:19354.29354]
+I1118 09:35:10.358882 filer.go:295 LockRing: applying master ring update v1794965710357859576: [127.0.0.1:19354]
+I1118 09:35:40.022079 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794965740021532184: [127.0.0.1:19354.29354]
+I1118 09:35:40.022130 filer.go:295 LockRing: applying master ring update v1794965740021532184: [127.0.0.1:19354]
+I1118 09:36:09.666936 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794965769666643004: [127.0.0.1:19354.29354]
+I1118 09:36:09.666983 filer.go:295 LockRing: applying master ring update v1794965769666643004: [127.0.0.1:19354]
+I1118 09:36:24.153774 retry.go:230 retry assign: giving up after 29.999990043s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 09:36:24.154068 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-35.24f284d1: AssignVolume: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 09:36:39.318205 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794965799317698310: [127.0.0.1:19354.29354]
+I1118 09:36:39.318265 filer.go:295 LockRing: applying master ring update v1794965799317698310: [127.0.0.1:19354]
+I1118 09:36:54.558380 retry.go:230 retry assign: giving up after 29.999990853s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 09:36:54.558539 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-35.24f284d1: AssignVolume: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 09:37:08.990443 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794965828989813873: [127.0.0.1:19354.29354]
+I1118 09:37:08.990539 filer.go:295 LockRing: applying master ring update v1794965828989813873: [127.0.0.1:19354]
+I1118 09:37:24.953329 retry.go:230 retry assign: giving up after 29.999991237s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 09:37:24.953437 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-35.24f284d1: AssignVolume: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 09:37:38.768779 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794965858768333304: [127.0.0.1:19354.29354]
+I1118 09:37:38.768864 filer.go:295 LockRing: applying master ring update v1794965858768333304: [127.0.0.1:19354]
+I1118 09:37:55.353796 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-35.24f284d1: AssignVolume: context deadline exceeded
+I1118 09:38:02.367543 master_client.go:27 the cluster has 0 filers
+I1118 09:38:02.370015 shutdown.go:15 Gracefully stopping gRPC server
+I1118 09:38:02.580024 filer_grpc_server_sub_meta.go:1112 disconnect mount@127.0.0.1:45406 local subscriber / clientId:-1299451034
+I1118 09:38:02.580102 filer_grpc_server_sub_meta.go:1753 - local listener mount@127.0.0.1:45406 clientId -1299451034 clientEpoch 2
+I1118 09:38:02.580693 filer_grpc_server_sub_meta.go:1112 disconnect filer:127.0.0.1:19354.29354@127.0.0.1:37122 local subscriber / clientId:-619873489
+I1118 09:38:02.580744 filer_grpc_server_sub_meta.go:1753 - local listener filer:127.0.0.1:19354.29354@127.0.0.1:37122 clientId -619873489 clientEpoch 1
+I1118 09:38:02.581319 meta_aggregator.go:702 SubscribeLocalMetadata stream 127.0.0.1:19354: rpc error: code = Unavailable desc = filer is shutting down
+I1118 09:38:02.581757 shutdown.go:23 gRPC server stopped gracefully
+I1118 09:38:02.581807 meta_aggregator.go:481 subscribing remote 127.0.0.1:19354 meta change: rpc error: code = Unavailable desc = filer is shutting down
+I1118 09:38:02.581817 filer_server.go:492 Shutting down filer
+I1118 09:38:02.581888 filer_deletion.go:317 deletion processor shutting down
+I1118 09:38:02.581959 filer_deletion.go:543 retry processor shutting down, 0 items remaining in queue
+I1118 09:38:04.315791 meta_aggregator.go:465 loopSubscribeToOneFiler read 127.0.0.1:19354 start from 2026-11-18 09:35:46.924754468 +0800 CST 1794965746924754468
+I1118 09:38:04.316692 meta_aggregator.go:481 subscribing remote 127.0.0.1:19354 meta change: connecting to peer filer 127.0.0.1:19354: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial tcp 127.0.0.1:29354: connect: connection refused"
+I1118 09:38:06.050419 meta_aggregator.go:465 loopSubscribeToOneFiler read 127.0.0.1:19354 start from 2026-11-18 09:35:46.924754468 +0800 CST 1794965746924754468
+I1118 09:38:06.052057 meta_aggregator.go:481 subscribing remote 127.0.0.1:19354 meta change: connecting to peer filer 127.0.0.1:19354: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial tcp 127.0.0.1:29354: connect: connection refused"
+I1118 09:38:07.785881 meta_aggregator.go:465 loopSubscribeToOneFiler read 127.0.0.1:19354 start from 2026-11-18 09:35:46.924754468 +0800 CST 1794965746924754468
+I1118 09:38:07.786871 meta_aggregator.go:481 subscribing remote 127.0.0.1:19354 meta change: connecting to peer filer 127.0.0.1:19354: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial tcp 127.0.0.1:29354: connect: connection refused"
+I1118 09:38:08.676615 filer.go:411 Initialized credential manager: filer_etc
+I1118 09:38:08.679561 filer_server.go:295 default to create filer store dir in /mnt/lima-colima/native-arm/ldb/filerldb2
+I1118 09:38:08.682991 filer_server.go:303 max_file_name_length 255
+I1118 09:38:08.702617 leveldb2_store.go:94 filer store leveldb2 dir: /mnt/lima-colima/native-arm/ldb/filerldb2
+I1118 09:38:08.702686 file_util.go:29 Folder /mnt/lima-colima/native-arm/ldb/filerldb2 Permission: -rwxr-xr-x
+E1118 09:38:08.702811 leveldb2_store.go:113 filer store open dir /mnt/lima-colima/native-arm/ldb/filerldb2/00: resource temporarily unavailable
+F1118 09:38:08.703281 configuration.go:26 failed to initialize store for leveldb2: resource temporarily unavailable
+goroutine 1 [running]:
+github.com/seaweedfs/seaweedfs/weed/glog.stacks(0x0)
+	/go/src/github.com/seaweedfs/seaweedfs/weed/glog/glog.go:832 +0x8c
+github.com/seaweedfs/seaweedfs/weed/glog.(*loggingT).output(0x8f62d20, 0x3, 0x1a0f1f63ae70, {0x64a550e?, 0x1a0f20537368?}, 0x2?, 0x0)
+	/go/src/github.com/seaweedfs/seaweedfs/weed/glog/glog.go:783 +0x404
+github.com/seaweedfs/seaweedfs/weed/glog.(*loggingT).printf(0x8f62d20, 0x3, {0x4cb1ae4, 0x26}, {0x1a0f20537368, 0x2, 0x2})
+	/go/src/github.com/seaweedfs/seaweedfs/weed/glog/glog.go:680 +0xe8
+github.com/seaweedfs/seaweedfs/weed/glog.Fatalf(...)
+	/go/src/github.com/seaweedfs/seaweedfs/weed/glog/glog.go:1242
+github.com/seaweedfs/seaweedfs/weed/filer.(*Filer).LoadConfiguration(0x1a0f203ee200, 0x8f525f0)
+	/go/src/github.com/seaweedfs/seaweedfs/weed/filer/configuration.go:26 +0x878
+github.com/seaweedfs/seaweedfs/weed/server.NewFilerServer(0x1a0f203ac300, 0x1a0f203ac300, 0x1a0f1fc48000)
+	/go/src/github.com/seaweedfs/seaweedfs/weed/server/filer_server.go:342 +0xefc
+github.com/seaweedfs/seaweedfs/weed/command.(*FilerOptions).startFiler(0x8f64560)
+	/go/src/github.com/seaweedfs/seaweedfs/weed/command/filer.go:424 +0x614
+github.com/seaweedfs/seaweedfs/weed/command.runFiler(0x8f293d8?, {0x1a0f1f2cc020?, 0x6?, 0x6?})
+	/go/src/github.com/seaweedfs/seaweedfs/weed/command/filer.go:368 +0x6c4
+main.main()
+	/go/src/github.com/seaweedfs/seaweedfs/weed/weed.go:97 +0x3bc
+I1118 09:38:09.402617 meta_aggregator.go:465 loopSubscribeToOneFiler read 127.0.0.1:19354 start from 2026-11-18 09:35:46.924754468 +0800 CST 1794965746924754468
+I1118 09:38:09.404183 meta_aggregator.go:481 subscribing remote 127.0.0.1:19354 meta change: connecting to peer filer 127.0.0.1:19354: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial tcp 127.0.0.1:29354: connect: connection refused"
+I1118 09:38:11.137601 meta_aggregator.go:465 loopSubscribeToOneFiler read 127.0.0.1:19354 start from 2026-11-18 09:35:46.924754468 +0800 CST 1794965746924754468
+I1118 09:38:11.138665 meta_aggregator.go:481 subscribing remote 127.0.0.1:19354 meta change: connecting to peer filer 127.0.0.1:19354: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial tcp 127.0.0.1:29354: connect: connection refused"
+I1118 09:38:12.872987 meta_aggregator.go:465 loopSubscribeToOneFiler read 127.0.0.1:19354 start from 2026-11-18 09:35:46.924754468 +0800 CST 1794965746924754468
+I1118 09:38:12.873933 meta_aggregator.go:481 subscribing remote 127.0.0.1:19354 meta change: connecting to peer filer 127.0.0.1:19354: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial tcp 127.0.0.1:29354: connect: connection refused"
+I1118 09:38:14.607749 meta_aggregator.go:465 loopSubscribeToOneFiler read 127.0.0.1:19354 start from 2026-11-18 09:35:46.924754468 +0800 CST 1794965746924754468
+I1118 09:38:14.608657 meta_aggregator.go:481 subscribing remote 127.0.0.1:19354 meta change: connecting to peer filer 127.0.0.1:19354: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial tcp 127.0.0.1:29354: connect: connection refused"
+I1118 09:38:16.342042 meta_aggregator.go:465 loopSubscribeToOneFiler read 127.0.0.1:19354 start from 2026-11-18 09:35:46.924754468 +0800 CST 1794965746924754468
+I1118 09:38:16.343083 meta_aggregator.go:481 subscribing remote 127.0.0.1:19354 meta change: connecting to peer filer 127.0.0.1:19354: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial tcp 127.0.0.1:29354: connect: connection refused"
+I1118 09:38:17.465108 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-35.24f284d1: AssignVolume: context canceled
+I1118 09:38:17.466042 filer_notify.go:384 metadata log flush abandoned during shutdown, 337 bytes left for /topics/.system/log/2026-11-18/01-35.24f284d1: context canceled
+W1118 09:38:17.466112 log_buffer.go:828 log buffer local: shutdown flush dropped 337 bytes
+I1118 09:38:17.466320 meta_aggregator.go:488 stop subscribing peer 127.0.0.1:19354 meta change
+I1118 09:39:12.054354 filer.go:411 Initialized credential manager: filer_etc
+I1118 09:39:12.060723 filer_server.go:295 default to create filer store dir in /mnt/lima-colima/native-arm/ldb/filerldb2
+I1118 09:39:12.069408 filer_server.go:303 max_file_name_length 255
+I1118 09:39:12.106081 leveldb2_store.go:94 filer store leveldb2 dir: /mnt/lima-colima/native-arm/ldb/filerldb2
+I1118 09:39:12.106219 file_util.go:29 Folder /mnt/lima-colima/native-arm/ldb/filerldb2 Permission: -rwxr-xr-x
+I1118 09:39:12.337649 filer.go:439 existing filer.store.id = 1540817559
+I1118 09:39:12.337813 configuration.go:29 configured filer store to leveldb2
+I1118 09:39:12.338112 filer_server_tus_session.go:637 TUS session cleanup started with interval 1h0m0s
+I1118 09:39:12.341092 master_client.go:27 the cluster has 0 filers
+I1118 09:39:13.342319 master_client.go:27 the cluster has 0 filers
+I1118 09:39:14.347555 master_client.go:27 the cluster has 0 filers
+I1118 09:39:15.349767 master_client.go:27 the cluster has 0 filers
+I1118 09:39:15.351013 master_client.go:27 the cluster has 0 filers
+I1118 09:39:15.351116 filer.go:273 127.0.0.1:19354 aggregate from peers []
+I1118 09:39:15.370091 filer.go:495 Start Seaweed Filer 30GB 4.54 5ef99c1d8 at 127.0.0.1:19354
+I1118 09:39:15.370063 meta_aggregator.go:465 loopSubscribeToOneFiler read 127.0.0.1:19354 start from 2026-11-18 09:38:15.351047593 +0800 CST 1794965895351047593
+W1118 09:39:15.370749 filer.go:530 IAM gRPC service on filer is UNAUTHENTICATED: anyone who can reach this port can create users and policies, and its OIDC provider and role RPCs are refused; set jwt.filer_signing.key in security.toml to require an admin Bearer token
+I1118 09:39:15.372888 masterclient.go:544 updateVidMap ignore short heartbeat: volume_location:{leader:"127.0.0.1:19350.29350"}
+I1118 09:39:15.373095 masterclient.go:465 + filer@127.0.0.1:19354 noticed .filer 127.0.0.1:19354.29354
+I1118 09:39:15.373125 masterclient.go:465 + filer@127.0.0.1:19354 noticed .filer 127.0.0.1:19354.29354
+I1118 09:39:15.373000 meta_aggregator.go:647 subscribing remote 127.0.0.1:19354 meta change: 2026-11-18 09:38:15.351047593 +0800 CST, clientId:2026889436
+I1118 09:39:15.374881 filer_grpc_server_sub_meta.go:1725 + local listener filer:127.0.0.1:19354.29354@127.0.0.1:38606 clientId -2026889436 clientEpoch 1
+I1118 09:39:15.374938 filer_grpc_server_sub_meta.go:1117  + filer:127.0.0.1:19354.29354@127.0.0.1:38606 local subscribe / from {Time:2026-11-18 01:38:15.351047593 +0000 UTC Offset:-7 IsOffsetBased:false} clientId:-2026889436
+I1118 09:39:16.374690 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794965956373697926: [127.0.0.1:19354.29354]
+I1118 09:39:16.374717 filer.go:295 LockRing: applying master ring update v1794965956373697926: [127.0.0.1:19354]
+I1118 09:39:16.378346 filer_grpc_server_sub_meta.go:1725 + local listener mount@127.0.0.1:38634 clientId -1412314350 clientEpoch 2
+I1118 09:39:16.378366 filer_grpc_server_sub_meta.go:1117  + mount@127.0.0.1:38634 local subscribe / from {Time:2026-11-18 01:39:16.376742011 +0000 UTC Offset:-7 IsOffsetBased:false} clientId:-1412314350
+I1118 09:39:46.117163 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794965986114676742: [127.0.0.1:19354.29354]
+I1118 09:39:46.117364 filer.go:295 LockRing: applying master ring update v1794965986114676742: [127.0.0.1:19354]
+I1118 09:40:15.777285 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794966015776750299: [127.0.0.1:19354.29354]
+I1118 09:40:15.777374 filer.go:295 LockRing: applying master ring update v1794966015776750299: [127.0.0.1:19354]
+I1118 09:40:41.169526 retry.go:230 retry assign: giving up after 29.999976124s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 09:40:41.169757 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 09:40:45.445408 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794966045444831225: [127.0.0.1:19354.29354]
+I1118 09:40:45.445443 filer.go:295 LockRing: applying master ring update v1794966045444831225: [127.0.0.1:19354]
+I1118 09:41:11.572902 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: context deadline exceeded
+I1118 09:41:15.109152 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794966075108546995: [127.0.0.1:19354.29354]
+I1118 09:41:15.109205 filer.go:295 LockRing: applying master ring update v1794966075108546995: [127.0.0.1:19354]
+I1118 09:41:41.965587 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: context deadline exceeded
+I1118 09:41:44.763487 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794966104762694143: [127.0.0.1:19354.29354]
+I1118 09:41:44.763533 filer.go:295 LockRing: applying master ring update v1794966104762694143: [127.0.0.1:19354]
+I1118 09:42:12.361792 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: context deadline exceeded
+I1118 09:42:14.420882 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794966134420518319: [127.0.0.1:19354.29354]
+I1118 09:42:14.420924 filer.go:295 LockRing: applying master ring update v1794966134420518319: [127.0.0.1:19354]
+I1118 09:42:42.748906 retry.go:230 retry assign: giving up after 29.999994051s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 09:42:42.749018 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 09:42:44.070499 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794966164069617068: [127.0.0.1:19354.29354]
+I1118 09:42:44.070574 filer.go:295 LockRing: applying master ring update v1794966164069617068: [127.0.0.1:19354]
+I1118 09:43:13.110094 retry.go:230 retry assign: giving up after 29.999983584s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 09:43:13.110188 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 09:43:13.695162 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794966193693939202: [127.0.0.1:19354.29354]
+I1118 09:43:13.695242 filer.go:295 LockRing: applying master ring update v1794966193693939202: [127.0.0.1:19354]
+I1118 09:43:43.302921 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794966223302331183: [127.0.0.1:19354.29354]
+I1118 09:43:43.302957 filer.go:295 LockRing: applying master ring update v1794966223302331183: [127.0.0.1:19354]
+I1118 09:43:43.456658 retry.go:230 retry assign: giving up after 29.999985867s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 09:43:43.457148 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 09:44:12.925346 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794966252899836925: [127.0.0.1:19354.29354]
+I1118 09:44:12.925929 filer.go:295 LockRing: applying master ring update v1794966252899836925: [127.0.0.1:19354]
+I1118 09:44:13.789872 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: context deadline exceeded
+I1118 09:44:42.540083 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794966282539569935: [127.0.0.1:19354.29354]
+I1118 09:44:42.540136 filer.go:295 LockRing: applying master ring update v1794966282539569935: [127.0.0.1:19354]
+I1118 09:44:44.170225 retry.go:230 retry assign: giving up after 29.999991847s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 09:44:44.170534 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 09:45:12.164485 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794966312163685753: [127.0.0.1:19354.29354]
+I1118 09:45:12.164559 filer.go:295 LockRing: applying master ring update v1794966312163685753: [127.0.0.1:19354]
+I1118 09:45:14.532406 retry.go:230 retry assign: giving up after 29.999968277s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 09:45:14.532494 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 09:45:41.764830 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794966341764540119: [127.0.0.1:19354.29354]
+I1118 09:45:41.764883 filer.go:295 LockRing: applying master ring update v1794966341764540119: [127.0.0.1:19354]
+I1118 09:45:44.872427 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: context deadline exceeded
+I1118 09:46:11.651106 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794966371650709806: [127.0.0.1:19354.29354]
+I1118 09:46:11.651150 filer.go:295 LockRing: applying master ring update v1794966371650709806: [127.0.0.1:19354]
+I1118 09:46:15.496217 retry.go:230 retry assign: giving up after 29.999992042s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 09:46:15.496369 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 09:46:41.244167 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794966401243613761: [127.0.0.1:19354.29354]
+I1118 09:46:41.244268 filer.go:295 LockRing: applying master ring update v1794966401243613761: [127.0.0.1:19354]
+I1118 09:46:45.827395 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: context deadline exceeded
+I1118 09:47:10.861626 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794966430860696601: [127.0.0.1:19354.29354]
+I1118 09:47:10.861694 filer.go:295 LockRing: applying master ring update v1794966430860696601: [127.0.0.1:19354]
+I1118 09:47:16.184025 retry.go:230 retry assign: giving up after 29.999988347s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 09:47:16.184200 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 09:47:40.478776 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794966460478297160: [127.0.0.1:19354.29354]
+I1118 09:47:40.478829 filer.go:295 LockRing: applying master ring update v1794966460478297160: [127.0.0.1:19354]
+I1118 09:47:46.541186 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: context deadline exceeded
+I1118 09:48:10.125370 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794966490124966409: [127.0.0.1:19354.29354]
+I1118 09:48:10.125439 filer.go:295 LockRing: applying master ring update v1794966490124966409: [127.0.0.1:19354]
+I1118 09:48:16.940441 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: context deadline exceeded
+I1118 09:48:39.707283 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794966519706607355: [127.0.0.1:19354.29354]
+I1118 09:48:39.707381 filer.go:295 LockRing: applying master ring update v1794966519706607355: [127.0.0.1:19354]
+I1118 09:48:47.262621 retry.go:230 retry assign: giving up after 29.999974222s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 09:48:47.262762 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 09:49:09.318631 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794966549317914782: [127.0.0.1:19354.29354]
+I1118 09:49:09.318828 filer.go:295 LockRing: applying master ring update v1794966549317914782: [127.0.0.1:19354]
+I1118 09:49:17.611921 retry.go:230 retry assign: giving up after 29.999944358s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 09:49:17.612149 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 09:49:39.053598 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794966579053209381: [127.0.0.1:19354.29354]
+I1118 09:49:39.053663 filer.go:295 LockRing: applying master ring update v1794966579053209381: [127.0.0.1:19354]
+I1118 09:49:47.970091 retry.go:230 retry assign: giving up after 29.999991302s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 09:49:47.970305 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 09:50:08.686238 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794966608685726123: [127.0.0.1:19354.29354]
+I1118 09:50:08.686300 filer.go:295 LockRing: applying master ring update v1794966608685726123: [127.0.0.1:19354]
+I1118 09:50:18.324526 retry.go:230 retry assign: giving up after 29.999981402s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 09:50:18.324684 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 09:50:38.303179 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794966638302775185: [127.0.0.1:19354.29354]
+I1118 09:50:38.303245 filer.go:295 LockRing: applying master ring update v1794966638302775185: [127.0.0.1:19354]
+I1118 09:50:48.696637 retry.go:230 retry assign: giving up after 29.999989411s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 09:50:48.696805 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 09:51:07.935901 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794966667935281292: [127.0.0.1:19354.29354]
+I1118 09:51:07.935957 filer.go:295 LockRing: applying master ring update v1794966667935281292: [127.0.0.1:19354]
+I1118 09:51:18.932075 retry.go:230 retry assign: giving up after 29.99998741s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 09:51:18.932181 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 09:51:37.560763 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794966697560304816: [127.0.0.1:19354.29354]
+I1118 09:51:37.560820 filer.go:295 LockRing: applying master ring update v1794966697560304816: [127.0.0.1:19354]
+I1118 09:51:49.287116 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: context deadline exceeded
+I1118 09:52:07.163401 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794966727163049286: [127.0.0.1:19354.29354]
+I1118 09:52:07.163464 filer.go:295 LockRing: applying master ring update v1794966727163049286: [127.0.0.1:19354]
+I1118 09:52:19.625104 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: context deadline exceeded
+I1118 09:52:36.758439 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794966756757630483: [127.0.0.1:19354.29354]
+I1118 09:52:36.758514 filer.go:295 LockRing: applying master ring update v1794966756757630483: [127.0.0.1:19354]
+I1118 09:52:49.956965 retry.go:230 retry assign: giving up after 29.99999065s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 09:52:49.957138 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 09:53:06.351696 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794966786350794898: [127.0.0.1:19354.29354]
+I1118 09:53:06.351802 filer.go:295 LockRing: applying master ring update v1794966786350794898: [127.0.0.1:19354]
+I1118 09:53:20.299973 retry.go:230 retry assign: giving up after 29.99998758s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 09:53:20.300187 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 09:53:35.955281 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794966815954976544: [127.0.0.1:19354.29354]
+I1118 09:53:35.955335 filer.go:295 LockRing: applying master ring update v1794966815954976544: [127.0.0.1:19354]
+I1118 09:53:50.632422 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: context deadline exceeded
+I1118 09:54:05.578354 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794966845577711392: [127.0.0.1:19354.29354]
+I1118 09:54:05.578426 filer.go:295 LockRing: applying master ring update v1794966845577711392: [127.0.0.1:19354]
+I1118 09:54:21.007895 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: context deadline exceeded
+I1118 09:54:35.170169 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794966875169313827: [127.0.0.1:19354.29354]
+I1118 09:54:35.170279 filer.go:295 LockRing: applying master ring update v1794966875169313827: [127.0.0.1:19354]
+I1118 09:54:51.322372 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: context deadline exceeded
+I1118 09:55:04.761411 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794966904760727306: [127.0.0.1:19354.29354]
+I1118 09:55:04.761475 filer.go:295 LockRing: applying master ring update v1794966904760727306: [127.0.0.1:19354]
+I1118 09:55:21.672279 retry.go:230 retry assign: giving up after 29.999990831s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 09:55:21.672401 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 09:55:34.376752 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794966934375973480: [127.0.0.1:19354.29354]
+I1118 09:55:34.376895 filer.go:295 LockRing: applying master ring update v1794966934375973480: [127.0.0.1:19354]
+I1118 09:55:52.024458 retry.go:230 retry assign: giving up after 29.999991301s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 09:55:52.024562 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 09:56:03.987176 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794966963986733548: [127.0.0.1:19354.29354]
+I1118 09:56:03.987242 filer.go:295 LockRing: applying master ring update v1794966963986733548: [127.0.0.1:19354]
+I1118 09:56:22.362436 retry.go:230 retry assign: giving up after 29.99999232s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 09:56:22.362653 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 09:56:33.599195 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794966993598726807: [127.0.0.1:19354.29354]
+I1118 09:56:33.599226 filer.go:295 LockRing: applying master ring update v1794966993598726807: [127.0.0.1:19354]
+I1118 09:56:52.709904 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: context deadline exceeded
+I1118 09:57:03.192084 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794967023191735746: [127.0.0.1:19354.29354]
+I1118 09:57:03.192136 filer.go:295 LockRing: applying master ring update v1794967023191735746: [127.0.0.1:19354]
+I1118 09:57:23.041464 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: context deadline exceeded
+I1118 09:57:32.762523 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794967052761968569: [127.0.0.1:19354.29354]
+I1118 09:57:32.762677 filer.go:295 LockRing: applying master ring update v1794967052761968569: [127.0.0.1:19354]
+I1118 09:57:53.324261 retry.go:230 retry assign: giving up after 29.999989898s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 09:57:53.324342 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 09:58:02.322354 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794967082321722118: [127.0.0.1:19354.29354]
+I1118 09:58:02.322428 filer.go:295 LockRing: applying master ring update v1794967082321722118: [127.0.0.1:19354]
+I1118 09:58:23.620487 retry.go:230 retry assign: giving up after 29.999992008s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 09:58:23.620629 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 09:58:31.857684 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794967111857318689: [127.0.0.1:19354.29354]
+I1118 09:58:31.857733 filer.go:295 LockRing: applying master ring update v1794967111857318689: [127.0.0.1:19354]
+I1118 09:58:53.928597 retry.go:230 retry assign: giving up after 29.999990421s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 09:58:53.928711 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 09:59:01.462916 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794967141462691812: [127.0.0.1:19354.29354]
+I1118 09:59:01.462954 filer.go:295 LockRing: applying master ring update v1794967141462691812: [127.0.0.1:19354]
+I1118 09:59:24.254022 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: context deadline exceeded
+I1118 09:59:31.050576 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794967171050084018: [127.0.0.1:19354.29354]
+I1118 09:59:31.050628 filer.go:295 LockRing: applying master ring update v1794967171050084018: [127.0.0.1:19354]
+I1118 09:59:54.608958 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: context deadline exceeded
+I1118 10:00:00.649418 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794967200649020001: [127.0.0.1:19354.29354]
+I1118 10:00:00.649478 filer.go:295 LockRing: applying master ring update v1794967200649020001: [127.0.0.1:19354]
+I1118 10:00:24.928384 retry.go:230 retry assign: giving up after 29.999991554s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:00:24.928693 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:00:30.234499 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794967230233311993: [127.0.0.1:19354.29354]
+I1118 10:00:30.234558 filer.go:295 LockRing: applying master ring update v1794967230233311993: [127.0.0.1:19354]
+I1118 10:00:55.234911 retry.go:230 retry assign: giving up after 29.999980957s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:00:55.235042 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:00:59.800374 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794967259799902113: [127.0.0.1:19354.29354]
+I1118 10:00:59.800618 filer.go:295 LockRing: applying master ring update v1794967259799902113: [127.0.0.1:19354]
+I1118 10:01:25.554814 retry.go:230 retry assign: giving up after 29.999990287s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:01:25.555694 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:01:29.386467 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794967289382518707: [127.0.0.1:19354.29354]
+I1118 10:01:29.386653 filer.go:295 LockRing: applying master ring update v1794967289382518707: [127.0.0.1:19354]
+I1118 10:01:55.467027 retry.go:230 retry assign: giving up after 29.999995102s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:01:55.762499 retry.go:230 retry assign: giving up after 29.999994772s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:01:55.863147 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: context deadline exceeded
+I1118 10:01:58.957557 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794967318957012130: [127.0.0.1:19354.29354]
+I1118 10:01:58.957667 filer.go:295 LockRing: applying master ring update v1794967318957012130: [127.0.0.1:19354]
+I1118 10:02:26.090844 retry.go:230 retry assign: giving up after 29.999998399s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:02:26.133289 retry.go:230 retry assign: giving up after 29.999997978s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:02:26.181163 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: context deadline exceeded
+I1118 10:02:26.280535 retry.go:230 retry assign: giving up after 29.999998484s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:02:28.666361 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794967348665622019: [127.0.0.1:19354.29354]
+I1118 10:02:28.666457 filer.go:295 LockRing: applying master ring update v1794967348665622019: [127.0.0.1:19354]
+I1118 10:02:56.502136 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: context deadline exceeded
+I1118 10:02:56.975404 retry.go:230 retry assign: giving up after 29.999941556s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:02:57.128058 retry.go:230 retry assign: giving up after 29.999998105s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:02:57.141771 retry.go:230 retry assign: giving up after 29.999994442s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:02:57.302343 retry.go:230 retry assign: giving up after 29.999997768s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:02:58.247796 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794967378247284494: [127.0.0.1:19354.29354]
+I1118 10:02:58.247861 filer.go:295 LockRing: applying master ring update v1794967378247284494: [127.0.0.1:19354]
+I1118 10:03:26.802952 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: context deadline exceeded
+I1118 10:03:27.813924 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794967407812914652: [127.0.0.1:19354.29354]
+I1118 10:03:27.814111 filer.go:295 LockRing: applying master ring update v1794967407812914652: [127.0.0.1:19354]
+I1118 10:03:28.987278 retry.go:230 retry assign: giving up after 29.999997832s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:03:28.974753 retry.go:230 retry assign: giving up after 29.999997791s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:03:28.994870 retry.go:230 retry assign: giving up after 29.999998041s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:03:29.011670 retry.go:230 retry assign: giving up after 29.99999629s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:03:57.091840 retry.go:230 retry assign: giving up after 29.999989898s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:03:57.092756 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:03:57.362199 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794967437361032707: [127.0.0.1:19354.29354]
+I1118 10:03:57.362464 filer.go:295 LockRing: applying master ring update v1794967437361032707: [127.0.0.1:19354]
+I1118 10:04:01.547003 retry.go:230 retry assign: giving up after 29.999998763s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:04:01.582047 retry.go:230 retry assign: giving up after 29.999997874s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:04:01.685904 retry.go:230 retry assign: giving up after 29.999997407s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:04:01.734039 retry.go:230 retry assign: giving up after 29.999997237s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:04:01.820873 retry.go:230 retry assign: giving up after 29.999998597s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:04:01.931248 retry.go:230 retry assign: giving up after 29.999997875s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:04:01.945670 retry.go:230 retry assign: giving up after 29.999995154s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:04:01.971002 retry.go:230 retry assign: giving up after 29.999998342s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:04:02.030707 retry.go:230 retry assign: giving up after 29.999998342s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:04:26.963741 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794967466947042553: [127.0.0.1:19354.29354]
+I1118 10:04:26.976476 filer.go:295 LockRing: applying master ring update v1794967466947042553: [127.0.0.1:19354]
+I1118 10:04:27.393606 retry.go:230 retry assign: giving up after 29.999989821s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:04:27.394051 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:04:56.511351 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794967496510579412: [127.0.0.1:19354.29354]
+I1118 10:04:56.511479 filer.go:295 LockRing: applying master ring update v1794967496510579412: [127.0.0.1:19354]
+I1118 10:04:57.696607 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: context deadline exceeded
+I1118 10:05:26.094209 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794967526093751316: [127.0.0.1:19354.29354]
+I1118 10:05:26.094251 filer.go:295 LockRing: applying master ring update v1794967526093751316: [127.0.0.1:19354]
+I1118 10:05:28.019199 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: context deadline exceeded
+I1118 10:05:55.680108 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794967555679278240: [127.0.0.1:19354.29354]
+I1118 10:05:55.680523 filer.go:295 LockRing: applying master ring update v1794967555679278240: [127.0.0.1:19354]
+I1118 10:05:58.355006 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: context deadline exceeded
+I1118 10:06:25.261200 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794967585256873906: [127.0.0.1:19354.29354]
+I1118 10:06:25.261278 filer.go:295 LockRing: applying master ring update v1794967585256873906: [127.0.0.1:19354]
+I1118 10:06:28.658486 retry.go:230 retry assign: giving up after 29.999988203s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:06:28.658661 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:06:54.846197 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794967614845511592: [127.0.0.1:19354.29354]
+I1118 10:06:54.846317 filer.go:295 LockRing: applying master ring update v1794967614845511592: [127.0.0.1:19354]
+I1118 10:06:58.984264 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: context deadline exceeded
+I1118 10:07:24.439600 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794967644438961436: [127.0.0.1:19354.29354]
+I1118 10:07:24.439682 filer.go:295 LockRing: applying master ring update v1794967644438961436: [127.0.0.1:19354]
+I1118 10:07:29.192985 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: context deadline exceeded
+I1118 10:07:47.679478 retry.go:230 retry assign: giving up after 29.999995042s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:07:47.679760 retry.go:230 retry assign: giving up after 29.999987816s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:07:54.002979 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794967674002343586: [127.0.0.1:19354.29354]
+I1118 10:07:54.003076 filer.go:295 LockRing: applying master ring update v1794967674002343586: [127.0.0.1:19354]
+I1118 10:07:59.503380 retry.go:230 retry assign: giving up after 29.999989078s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:07:59.503798 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:08:23.584083 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794967703583377822: [127.0.0.1:19354.29354]
+I1118 10:08:23.584268 filer.go:295 LockRing: applying master ring update v1794967703583377822: [127.0.0.1:19354]
+I1118 10:08:29.824091 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: context deadline exceeded
+I1118 10:08:50.435725 retry.go:230 retry assign: giving up after 29.999996119s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:08:53.157697 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794967733156878385: [127.0.0.1:19354.29354]
+I1118 10:08:53.157806 filer.go:295 LockRing: applying master ring update v1794967733156878385: [127.0.0.1:19354]
+I1118 10:09:00.134922 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: context deadline exceeded
+I1118 10:09:22.747413 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794967762746780743: [127.0.0.1:19354.29354]
+I1118 10:09:22.747487 filer.go:295 LockRing: applying master ring update v1794967762746780743: [127.0.0.1:19354]
+I1118 10:09:30.445902 retry.go:230 retry assign: giving up after 29.999988461s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:09:30.446255 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:09:52.300267 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794967792298492545: [127.0.0.1:19354.29354]
+I1118 10:09:52.301353 filer.go:295 LockRing: applying master ring update v1794967792298492545: [127.0.0.1:19354]
+I1118 10:10:00.741154 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: context deadline exceeded
+I1118 10:10:21.857397 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794967821856420479: [127.0.0.1:19354.29354]
+I1118 10:10:21.858555 filer.go:295 LockRing: applying master ring update v1794967821856420479: [127.0.0.1:19354]
+I1118 10:10:31.042269 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: context deadline exceeded
+I1118 10:10:51.414521 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794967851413871333: [127.0.0.1:19354.29354]
+I1118 10:10:51.414580 filer.go:295 LockRing: applying master ring update v1794967851413871333: [127.0.0.1:19354]
+I1118 10:11:01.350763 retry.go:230 retry assign: giving up after 29.999991492s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:11:01.351197 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:11:20.996677 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794967880995284939: [127.0.0.1:19354.29354]
+I1118 10:11:20.996988 filer.go:295 LockRing: applying master ring update v1794967880995284939: [127.0.0.1:19354]
+I1118 10:11:31.656700 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: context deadline exceeded
+I1118 10:11:50.528238 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794967910526571642: [127.0.0.1:19354.29354]
+I1118 10:11:50.528597 filer.go:295 LockRing: applying master ring update v1794967910526571642: [127.0.0.1:19354]
+I1118 10:12:01.912295 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: context deadline exceeded
+I1118 10:12:20.158041 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794967940124193661: [127.0.0.1:19354.29354]
+I1118 10:12:20.158655 filer.go:295 LockRing: applying master ring update v1794967940124193661: [127.0.0.1:19354]
+I1118 10:12:32.215893 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: context deadline exceeded
+I1118 10:12:49.650870 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794967969648307988: [127.0.0.1:19354.29354]
+I1118 10:12:49.651105 filer.go:295 LockRing: applying master ring update v1794967969648307988: [127.0.0.1:19354]
+I1118 10:13:02.454804 retry.go:230 retry assign: giving up after 29.999990596s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:13:02.455170 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:13:19.167971 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794967999167321411: [127.0.0.1:19354.29354]
+I1118 10:13:19.168052 filer.go:295 LockRing: applying master ring update v1794967999167321411: [127.0.0.1:19354]
+I1118 10:13:32.728620 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: context deadline exceeded
+I1118 10:13:48.869535 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794968028868768492: [127.0.0.1:19354.29354]
+I1118 10:13:48.869647 filer.go:295 LockRing: applying master ring update v1794968028868768492: [127.0.0.1:19354]
+I1118 10:14:03.045191 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: context deadline exceeded
+I1118 10:14:18.461499 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794968058437015585: [127.0.0.1:19354.29354]
+I1118 10:14:18.461783 filer.go:295 LockRing: applying master ring update v1794968058437015585: [127.0.0.1:19354]
+I1118 10:14:33.334767 retry.go:230 retry assign: giving up after 29.999990194s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:14:33.335172 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:14:48.007863 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794968088006990489: [127.0.0.1:19354.29354]
+I1118 10:14:48.008038 filer.go:295 LockRing: applying master ring update v1794968088006990489: [127.0.0.1:19354]
+I1118 10:15:03.642182 retry.go:230 retry assign: giving up after 29.99999146s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:15:03.642429 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:15:17.563050 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794968117562195743: [127.0.0.1:19354.29354]
+I1118 10:15:17.563140 filer.go:295 LockRing: applying master ring update v1794968117562195743: [127.0.0.1:19354]
+I1118 10:15:33.918284 retry.go:230 retry assign: giving up after 29.999987723s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:15:33.918455 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:15:47.109824 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794968147109040555: [127.0.0.1:19354.29354]
+I1118 10:15:47.110010 filer.go:295 LockRing: applying master ring update v1794968147109040555: [127.0.0.1:19354]
+I1118 10:16:04.237197 retry.go:230 retry assign: giving up after 29.999990316s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:16:04.237491 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:16:16.674176 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794968176673339817: [127.0.0.1:19354.29354]
+I1118 10:16:16.674291 filer.go:295 LockRing: applying master ring update v1794968176673339817: [127.0.0.1:19354]
+I1118 10:16:34.521652 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: context deadline exceeded
+I1118 10:16:46.217045 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794968206216457226: [127.0.0.1:19354.29354]
+I1118 10:16:46.217145 filer.go:295 LockRing: applying master ring update v1794968206216457226: [127.0.0.1:19354]
+I1118 10:17:04.786701 retry.go:230 retry assign: giving up after 29.999991121s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:17:04.787226 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:17:15.748751 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794968235748181260: [127.0.0.1:19354.29354]
+I1118 10:17:15.748840 filer.go:295 LockRing: applying master ring update v1794968235748181260: [127.0.0.1:19354]
+I1118 10:17:35.060421 retry.go:230 retry assign: giving up after 29.999984576s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:17:35.060733 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:17:45.279685 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794968265279100565: [127.0.0.1:19354.29354]
+I1118 10:17:45.279898 filer.go:295 LockRing: applying master ring update v1794968265279100565: [127.0.0.1:19354]
+I1118 10:18:05.337667 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: context deadline exceeded
+I1118 10:18:14.816974 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794968294815755865: [127.0.0.1:19354.29354]
+I1118 10:18:14.817208 filer.go:295 LockRing: applying master ring update v1794968294815755865: [127.0.0.1:19354]
+I1118 10:18:35.593131 retry.go:230 retry assign: giving up after 29.999982612s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:18:35.593531 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:18:44.333173 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794968324332275722: [127.0.0.1:19354.29354]
+I1118 10:18:44.333355 filer.go:295 LockRing: applying master ring update v1794968324332275722: [127.0.0.1:19354]
+I1118 10:19:05.862417 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: context deadline exceeded
+I1118 10:19:13.843963 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794968353843286254: [127.0.0.1:19354.29354]
+I1118 10:19:13.844002 filer.go:295 LockRing: applying master ring update v1794968353843286254: [127.0.0.1:19354]
+I1118 10:19:36.111304 retry.go:230 retry assign: giving up after 29.999984742s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:19:36.111728 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:19:43.387613 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794968383386529958: [127.0.0.1:19354.29354]
+I1118 10:19:43.388239 filer.go:295 LockRing: applying master ring update v1794968383386529958: [127.0.0.1:19354]
+I1118 10:20:06.408741 retry.go:230 retry assign: giving up after 29.999986426s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:20:06.408922 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:20:12.933624 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794968412930730288: [127.0.0.1:19354.29354]
+I1118 10:20:12.933738 filer.go:295 LockRing: applying master ring update v1794968412930730288: [127.0.0.1:19354]
+I1118 10:20:36.673074 retry.go:230 retry assign: giving up after 29.999989086s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:20:36.673567 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:20:42.455411 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794968442454268393: [127.0.0.1:19354.29354]
+I1118 10:20:42.455584 filer.go:295 LockRing: applying master ring update v1794968442454268393: [127.0.0.1:19354]
+I1118 10:21:06.939817 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: context deadline exceeded
+I1118 10:21:11.985651 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794968471984351301: [127.0.0.1:19354.29354]
+I1118 10:21:11.985813 filer.go:295 LockRing: applying master ring update v1794968471984351301: [127.0.0.1:19354]
+I1118 10:21:37.227823 retry.go:230 retry assign: giving up after 29.999978387s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:21:37.228245 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:21:41.525994 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794968501524897244: [127.0.0.1:19354.29354]
+I1118 10:21:41.526147 filer.go:295 LockRing: applying master ring update v1794968501524897244: [127.0.0.1:19354]
+I1118 10:22:07.508147 retry.go:230 retry assign: giving up after 29.999990221s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:22:07.508658 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:22:11.080487 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794968531078913441: [127.0.0.1:19354.29354]
+I1118 10:22:11.080693 filer.go:295 LockRing: applying master ring update v1794968531078913441: [127.0.0.1:19354]
+I1118 10:22:37.814355 retry.go:230 retry assign: giving up after 29.999974558s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:22:37.814816 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:22:40.634250 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794968560633289461: [127.0.0.1:19354.29354]
+I1118 10:22:40.634427 filer.go:295 LockRing: applying master ring update v1794968560633289461: [127.0.0.1:19354]
+I1118 10:23:08.114430 retry.go:230 retry assign: giving up after 29.999989815s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:23:08.115319 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:23:10.189058 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794968590188020853: [127.0.0.1:19354.29354]
+I1118 10:23:10.189194 filer.go:295 LockRing: applying master ring update v1794968590188020853: [127.0.0.1:19354]
+I1118 10:23:38.395070 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: context deadline exceeded
+I1118 10:23:39.728124 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794968619727286783: [127.0.0.1:19354.29354]
+I1118 10:23:39.728231 filer.go:295 LockRing: applying master ring update v1794968619727286783: [127.0.0.1:19354]
+I1118 10:24:08.673819 retry.go:230 retry assign: giving up after 29.999990036s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:24:08.674284 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:24:09.281066 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794968649279746235: [127.0.0.1:19354.29354]
+I1118 10:24:09.281392 filer.go:295 LockRing: applying master ring update v1794968649279746235: [127.0.0.1:19354]
+I1118 10:24:38.284729 masterclient.go:442 .filer masterClient failed to receive from 127.0.0.1:19350: rpc error: code = Unavailable desc = error reading from server: EOF
+I1118 10:24:38.315089 master_client.go:39 connect to 127.0.0.1:19350: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial tcp 127.0.0.1:29350: connect: connection refused"
+I1118 10:24:38.517538 master_client.go:39 connect to 127.0.0.1:19350: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial tcp 127.0.0.1:29350: connect: connection refused"
+I1118 10:24:38.543142 filer_grpc_server_sub_meta.go:1112 disconnect mount@127.0.0.1:38634 local subscriber / clientId:-1412314350
+I1118 10:24:38.543212 filer_grpc_server_sub_meta.go:1753 - local listener mount@127.0.0.1:38634 clientId -1412314350 clientEpoch 2
+I1118 10:24:38.720110 master_client.go:39 connect to 127.0.0.1:19350: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial tcp 127.0.0.1:29350: connect: connection refused"
+I1118 10:24:38.921933 master_client.go:39 connect to 127.0.0.1:19350: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial tcp 127.0.0.1:29350: connect: connection refused"
+I1118 10:24:38.982509 retry.go:230 retry assign: giving up after 29.999988494s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:24:38.982635 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:24:38.971054 master_client.go:39 connect to 127.0.0.1:19350: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial tcp 127.0.0.1:29350: connect: connection refused"
+I1118 10:24:39.173066 master_client.go:39 connect to 127.0.0.1:19350: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial tcp 127.0.0.1:29350: connect: connection refused"
+I1118 10:24:39.374480 master_client.go:39 connect to 127.0.0.1:19350: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial tcp 127.0.0.1:29350: connect: connection refused"
+I1118 10:24:39.576350 master_client.go:39 connect to 127.0.0.1:19350: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial tcp 127.0.0.1:29350: connect: connection refused"
+I1118 10:24:39.777121 master_client.go:39 connect to 127.0.0.1:19350: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial tcp 127.0.0.1:29350: connect: connection refused"
+I1118 10:24:39.979444 master_client.go:39 connect to 127.0.0.1:19350: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial tcp 127.0.0.1:29350: connect: connection refused"
+I1118 10:24:40.180322 master_client.go:39 connect to 127.0.0.1:19350: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial tcp 127.0.0.1:29350: connect: connection refused"
+I1118 10:24:40.383508 master_client.go:39 connect to 127.0.0.1:19350: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial tcp 127.0.0.1:29350: connect: connection refused"
+I1118 10:24:40.586681 master_client.go:39 connect to 127.0.0.1:19350: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial tcp 127.0.0.1:29350: connect: connection refused"
+I1118 10:24:40.788450 master_client.go:39 connect to 127.0.0.1:19350: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial tcp 127.0.0.1:29350: connect: connection refused"
+I1118 10:24:40.989459 master_client.go:39 connect to 127.0.0.1:19350: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial tcp 127.0.0.1:29350: connect: connection refused"
+I1118 10:24:41.191382 master_client.go:39 connect to 127.0.0.1:19350: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial tcp 127.0.0.1:29350: connect: connection refused"
+I1118 10:24:41.392654 master_client.go:39 connect to 127.0.0.1:19350: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial tcp 127.0.0.1:29350: connect: connection refused"
+I1118 10:24:41.594172 master_client.go:39 connect to 127.0.0.1:19350: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial tcp 127.0.0.1:29350: connect: connection refused"
+I1118 10:24:41.794904 master_client.go:39 connect to 127.0.0.1:19350: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial tcp 127.0.0.1:29350: connect: connection refused"
+I1118 10:24:41.996961 master_client.go:39 connect to 127.0.0.1:19350: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial tcp 127.0.0.1:29350: connect: connection refused"
+I1118 10:24:42.200039 master_client.go:39 connect to 127.0.0.1:19350: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial tcp 127.0.0.1:29350: connect: connection refused"
+I1118 10:24:42.401429 master_client.go:39 connect to 127.0.0.1:19350: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial tcp 127.0.0.1:29350: connect: connection refused"
+I1118 10:24:42.602942 master_client.go:39 connect to 127.0.0.1:19350: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial tcp 127.0.0.1:29350: connect: connection refused"
+I1118 10:24:42.804876 master_client.go:39 connect to 127.0.0.1:19350: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial tcp 127.0.0.1:29350: connect: connection refused"
+I1118 10:24:43.006667 master_client.go:39 connect to 127.0.0.1:19350: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial tcp 127.0.0.1:29350: connect: connection refused"
+I1118 10:24:43.158023 shutdown.go:15 Gracefully stopping gRPC server
+I1118 10:24:43.233107 filer_grpc_server_sub_meta.go:1112 disconnect filer:127.0.0.1:19354.29354@127.0.0.1:38606 local subscriber / clientId:-2026889436
+I1118 10:24:43.233142 filer_grpc_server_sub_meta.go:1753 - local listener filer:127.0.0.1:19354.29354@127.0.0.1:38606 clientId -2026889436 clientEpoch 1
+I1118 10:24:43.233664 meta_aggregator.go:702 SubscribeLocalMetadata stream 127.0.0.1:19354: rpc error: code = Unavailable desc = filer is shutting down
+I1118 10:24:43.233852 shutdown.go:23 gRPC server stopped gracefully
+I1118 10:24:43.233950 filer_server.go:492 Shutting down filer
+I1118 10:24:43.234050 filer_deletion.go:317 deletion processor shutting down
+I1118 10:24:43.234052 filer_deletion.go:543 retry processor shutting down, 0 items remaining in queue
+I1118 10:24:43.234076 meta_aggregator.go:481 subscribing remote 127.0.0.1:19354 meta change: rpc error: code = Unavailable desc = filer is shutting down
+I1118 10:24:44.968204 meta_aggregator.go:465 loopSubscribeToOneFiler read 127.0.0.1:19354 start from 2026-11-18 10:01:24.384222717 +0800 CST 1794967284384222717
+I1118 10:24:44.969938 meta_aggregator.go:481 subscribing remote 127.0.0.1:19354 meta change: connecting to peer filer 127.0.0.1:19354: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial tcp 127.0.0.1:29354: connect: connection refused"
+I1118 10:24:46.704539 meta_aggregator.go:465 loopSubscribeToOneFiler read 127.0.0.1:19354 start from 2026-11-18 10:01:24.384222717 +0800 CST 1794967284384222717
+I1118 10:24:46.705334 meta_aggregator.go:481 subscribing remote 127.0.0.1:19354 meta change: connecting to peer filer 127.0.0.1:19354: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial tcp 127.0.0.1:29354: connect: connection refused"
+I1118 10:24:48.439256 meta_aggregator.go:465 loopSubscribeToOneFiler read 127.0.0.1:19354 start from 2026-11-18 10:01:24.384222717 +0800 CST 1794967284384222717
+I1118 10:24:48.440121 meta_aggregator.go:481 subscribing remote 127.0.0.1:19354 meta change: connecting to peer filer 127.0.0.1:19354: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial tcp 127.0.0.1:29354: connect: connection refused"
+I1118 10:24:49.478709 masterclient.go:762 .filer WaitUntilConnected still waiting for master connection (attempt 100)...
+I1118 10:24:50.174209 meta_aggregator.go:465 loopSubscribeToOneFiler read 127.0.0.1:19354 start from 2026-11-18 10:01:24.384222717 +0800 CST 1794967284384222717
+I1118 10:24:50.174894 meta_aggregator.go:481 subscribing remote 127.0.0.1:19354 meta change: connecting to peer filer 127.0.0.1:19354: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial tcp 127.0.0.1:29354: connect: connection refused"
+I1118 10:24:51.914082 meta_aggregator.go:465 loopSubscribeToOneFiler read 127.0.0.1:19354 start from 2026-11-18 10:01:24.384222717 +0800 CST 1794967284384222717
+I1118 10:24:51.925468 meta_aggregator.go:481 subscribing remote 127.0.0.1:19354 meta change: connecting to peer filer 127.0.0.1:19354: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial tcp 127.0.0.1:29354: connect: connection refused"
+I1118 10:24:53.659879 meta_aggregator.go:465 loopSubscribeToOneFiler read 127.0.0.1:19354 start from 2026-11-18 10:01:24.384222717 +0800 CST 1794967284384222717
+I1118 10:24:53.664059 meta_aggregator.go:481 subscribing remote 127.0.0.1:19354 meta change: connecting to peer filer 127.0.0.1:19354: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial tcp 127.0.0.1:29354: connect: connection refused"
+I1118 10:24:55.400127 meta_aggregator.go:465 loopSubscribeToOneFiler read 127.0.0.1:19354 start from 2026-11-18 10:01:24.384222717 +0800 CST 1794967284384222717
+I1118 10:24:55.401770 meta_aggregator.go:481 subscribing remote 127.0.0.1:19354 meta change: connecting to peer filer 127.0.0.1:19354: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial tcp 127.0.0.1:29354: connect: connection refused"
+I1118 10:24:57.136214 meta_aggregator.go:465 loopSubscribeToOneFiler read 127.0.0.1:19354 start from 2026-11-18 10:01:24.384222717 +0800 CST 1794967284384222717
+I1118 10:24:57.137837 meta_aggregator.go:481 subscribing remote 127.0.0.1:19354 meta change: connecting to peer filer 127.0.0.1:19354: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial tcp 127.0.0.1:29354: connect: connection refused"
+I1118 10:24:58.235639 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-39.78cfe0dc: AssignVolume: rpc error: code = Canceled desc = context canceled
+I1118 10:24:58.235997 filer_notify.go:384 metadata log flush abandoned during shutdown, 992 bytes left for /topics/.system/log/2026-11-18/01-39.78cfe0dc: context canceled
+W1118 10:24:58.236177 log_buffer.go:828 log buffer local: shutdown flush dropped 992 bytes
+I1118 10:24:58.239182 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/01-48.78cfe0dc: AssignVolume: context canceled
+I1118 10:24:58.239243 filer_notify.go:384 metadata log flush abandoned during shutdown, 788 bytes left for /topics/.system/log/2026-11-18/01-48.78cfe0dc: context canceled
+W1118 10:24:58.239269 log_buffer.go:828 log buffer local: shutdown flush dropped 788 bytes
+I1118 10:24:58.239362 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/02-01.78cfe0dc: AssignVolume: context canceled
+I1118 10:24:58.239372 filer_notify.go:384 metadata log flush abandoned during shutdown, 378 bytes left for /topics/.system/log/2026-11-18/02-01.78cfe0dc: context canceled
+W1118 10:24:58.239380 log_buffer.go:828 log buffer local: shutdown flush dropped 378 bytes
+I1118 10:24:58.239801 meta_aggregator.go:488 stop subscribing peer 127.0.0.1:19354 meta change
+I1118 10:25:00.774619 filer.go:411 Initialized credential manager: filer_etc
+I1118 10:25:00.786631 filer_server.go:295 default to create filer store dir in /mnt/lima-colima/native-arm/ldb/filerldb2
+I1118 10:25:00.794986 filer_server.go:303 max_file_name_length 255
+I1118 10:25:00.816488 leveldb2_store.go:94 filer store leveldb2 dir: /mnt/lima-colima/native-arm/ldb/filerldb2
+I1118 10:25:00.816605 file_util.go:29 Folder /mnt/lima-colima/native-arm/ldb/filerldb2 Permission: -rwxr-xr-x
+I1118 10:25:00.935927 filer.go:435 create filer.store.id to 698652578
+I1118 10:25:00.936095 configuration.go:29 configured filer store to leveldb2
+I1118 10:25:00.936613 filer_server_tus_session.go:637 TUS session cleanup started with interval 1h0m0s
+I1118 10:25:00.939663 master_client.go:27 the cluster has 0 filers
+I1118 10:25:01.941237 master_client.go:27 the cluster has 0 filers
+I1118 10:25:02.944407 master_client.go:27 the cluster has 0 filers
+I1118 10:25:03.946622 master_client.go:27 the cluster has 0 filers
+I1118 10:25:03.947212 master_client.go:27 the cluster has 0 filers
+I1118 10:25:03.947243 filer_server.go:399 127.0.0.1:19354 bootstrap from peers []
+I1118 10:25:03.947397 filer.go:273 127.0.0.1:19354 aggregate from peers []
+I1118 10:25:03.948542 meta_aggregator.go:465 loopSubscribeToOneFiler read 127.0.0.1:19354 start from 2026-11-18 10:24:03.9472289 +0800 CST 1794968643947228900
+I1118 10:25:03.949357 filer.go:495 Start Seaweed Filer 30GB 4.54 5ef99c1d8 at 127.0.0.1:19354
+I1118 10:25:03.949804 meta_aggregator.go:481 subscribing remote 127.0.0.1:19354 meta change: connecting to peer filer 127.0.0.1:19354: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial tcp 127.0.0.1:29354: connect: connection refused"
+W1118 10:25:03.949971 filer.go:530 IAM gRPC service on filer is UNAUTHENTICATED: anyone who can reach this port can create users and policies, and its OIDC provider and role RPCs are refused; set jwt.filer_signing.key in security.toml to require an admin Bearer token
+I1118 10:25:03.954118 master_client.go:27 the cluster has 0 filers
+I1118 10:25:04.955070 master_client.go:27 the cluster has 0 filers
+I1118 10:25:05.684229 meta_aggregator.go:465 loopSubscribeToOneFiler read 127.0.0.1:19354 start from 2026-11-18 10:24:03.9472289 +0800 CST 1794968643947228900
+I1118 10:25:05.693903 meta_aggregator.go:647 subscribing remote 127.0.0.1:19354 meta change: 2026-11-18 10:24:03.9472289 +0800 CST, clientId:510912082
+I1118 10:25:05.698386 filer_grpc_server_sub_meta.go:1725 + local listener filer:127.0.0.1:19354.29354@127.0.0.1:56528 clientId -510912082 clientEpoch 1
+I1118 10:25:05.698448 filer_grpc_server_sub_meta.go:1117  + filer:127.0.0.1:19354.29354@127.0.0.1:56528 local subscribe / from {Time:2026-11-18 02:24:03.9472289 +0000 UTC Offset:-7 IsOffsetBased:false} clientId:-510912082
+I1118 10:25:05.958017 master_client.go:27 the cluster has 0 filers
+I1118 10:25:06.959875 master_client.go:27 the cluster has 0 filers
+I1118 10:25:06.960574 master_client.go:27 the cluster has 0 filers
+I1118 10:25:07.963219 master_client.go:27 the cluster has 0 filers
+I1118 10:25:08.964840 master_client.go:27 the cluster has 0 filers
+I1118 10:25:09.800406 master_client.go:27 the cluster has 0 filers
+I1118 10:25:10.803988 master_client.go:27 the cluster has 0 filers
+I1118 10:25:10.805044 master_client.go:27 the cluster has 0 filers
+I1118 10:25:11.806385 master_client.go:27 the cluster has 0 filers
+I1118 10:25:12.809574 master_client.go:27 the cluster has 0 filers
+I1118 10:25:13.811202 master_client.go:27 the cluster has 0 filers
+I1118 10:25:14.812172 master_client.go:27 the cluster has 0 filers
+I1118 10:25:14.812789 master_client.go:27 the cluster has 0 filers
+I1118 10:25:14.814789 masterclient.go:544 updateVidMap ignore short heartbeat: volume_location:{leader:"127.0.0.1:19350.29350"}
+I1118 10:25:14.815119 masterclient.go:465 + filer@127.0.0.1:19354 noticed .filer 127.0.0.1:19354.29354
+I1118 10:25:14.815189 masterclient.go:465 + filer@127.0.0.1:19354 noticed .filer 127.0.0.1:19354.29354
+I1118 10:25:15.815807 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794968715814294241: [127.0.0.1:19354.29354]
+I1118 10:25:15.815897 filer.go:295 LockRing: applying master ring update v1794968715814294241: [127.0.0.1:19354]
+I1118 10:25:38.911112 filer_grpc_server_sub_meta.go:1725 + local listener mount@127.0.0.1:60790 clientId 1888207737 clientEpoch 2
+I1118 10:25:38.911296 filer_grpc_server_sub_meta.go:1117  + mount@127.0.0.1:60790 local subscribe / from {Time:2026-11-18 02:25:38.856452324 +0000 UTC Offset:-7 IsOffsetBased:false} clientId:1888207737
+I1118 10:25:45.330984 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794968745328923512: [127.0.0.1:19354.29354]
+I1118 10:25:45.331105 filer.go:295 LockRing: applying master ring update v1794968745328923512: [127.0.0.1:19354]
+I1118 10:26:14.844135 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794968774842993201: [127.0.0.1:19354.29354]
+I1118 10:26:14.844380 filer.go:295 LockRing: applying master ring update v1794968774842993201: [127.0.0.1:19354]
+I1118 10:26:29.380112 retry.go:230 retry assign: giving up after 29.999917625s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:26:29.380479 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/02-25.1e73e652: AssignVolume: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:26:44.395026 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794968804393740083: [127.0.0.1:19354.29354]
+I1118 10:26:44.395340 filer.go:295 LockRing: applying master ring update v1794968804393740083: [127.0.0.1:19354]
+I1118 10:26:44.895753 retry.go:230 retry assign: giving up after 29.999995143s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:26:45.211142 retry.go:230 retry assign: giving up after 29.999993833s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:26:59.665588 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/02-25.1e73e652: AssignVolume: context deadline exceeded
+I1118 10:27:12.667050 masterclient.go:442 .filer masterClient failed to receive from 127.0.0.1:19350: rpc error: code = Unavailable desc = error reading from server: EOF
+I1118 10:27:12.718620 master_client.go:39 connect to 127.0.0.1:19350: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial tcp 127.0.0.1:29350: connect: connection refused"
+I1118 10:27:12.869341 filer_grpc_server_sub_meta.go:1112 disconnect mount@127.0.0.1:60790 local subscriber / clientId:1888207737
+I1118 10:27:12.870654 filer_grpc_server_sub_meta.go:1753 - local listener mount@127.0.0.1:60790 clientId 1888207737 clientEpoch 2
+I1118 10:27:12.996125 master_client.go:39 connect to 127.0.0.1:19350: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial tcp 127.0.0.1:29350: connect: connection refused"
+I1118 10:27:13.198078 master_client.go:39 connect to 127.0.0.1:19350: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial tcp 127.0.0.1:29350: connect: connection refused"
+I1118 10:27:13.464250 master_client.go:39 connect to 127.0.0.1:19350: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial tcp 127.0.0.1:29350: connect: connection refused"
+I1118 10:27:13.666850 master_client.go:39 connect to 127.0.0.1:19350: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial tcp 127.0.0.1:29350: connect: connection refused"
+I1118 10:27:13.868474 master_client.go:39 connect to 127.0.0.1:19350: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial tcp 127.0.0.1:29350: connect: connection refused"
+I1118 10:27:14.069640 master_client.go:39 connect to 127.0.0.1:19350: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial tcp 127.0.0.1:29350: connect: connection refused"
+I1118 10:27:14.271642 master_client.go:39 connect to 127.0.0.1:19350: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial tcp 127.0.0.1:29350: connect: connection refused"
+I1118 10:27:14.474674 master_client.go:39 connect to 127.0.0.1:19350: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial tcp 127.0.0.1:29350: connect: connection refused"
+I1118 10:27:14.676166 master_client.go:39 connect to 127.0.0.1:19350: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial tcp 127.0.0.1:29350: connect: connection refused"
+I1118 10:27:14.878282 master_client.go:39 connect to 127.0.0.1:19350: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial tcp 127.0.0.1:29350: connect: connection refused"
+I1118 10:27:15.079850 master_client.go:39 connect to 127.0.0.1:19350: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial tcp 127.0.0.1:29350: connect: connection refused"
+I1118 10:27:15.280824 master_client.go:39 connect to 127.0.0.1:19350: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial tcp 127.0.0.1:29350: connect: connection refused"
+I1118 10:27:15.482602 master_client.go:39 connect to 127.0.0.1:19350: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial tcp 127.0.0.1:29350: connect: connection refused"
+I1118 10:27:15.684982 master_client.go:39 connect to 127.0.0.1:19350: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial tcp 127.0.0.1:29350: connect: connection refused"
+I1118 10:27:15.886866 master_client.go:39 connect to 127.0.0.1:19350: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial tcp 127.0.0.1:29350: connect: connection refused"
+I1118 10:27:16.088285 master_client.go:39 connect to 127.0.0.1:19350: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial tcp 127.0.0.1:29350: connect: connection refused"
+I1118 10:27:16.290322 master_client.go:39 connect to 127.0.0.1:19350: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial tcp 127.0.0.1:29350: connect: connection refused"
+I1118 10:27:16.492356 master_client.go:39 connect to 127.0.0.1:19350: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial tcp 127.0.0.1:29350: connect: connection refused"
+I1118 10:27:16.693766 master_client.go:39 connect to 127.0.0.1:19350: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial tcp 127.0.0.1:29350: connect: connection refused"
+I1118 10:27:16.895472 master_client.go:39 connect to 127.0.0.1:19350: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial tcp 127.0.0.1:29350: connect: connection refused"
+I1118 10:27:17.096892 master_client.go:39 connect to 127.0.0.1:19350: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial tcp 127.0.0.1:29350: connect: connection refused"
+I1118 10:27:17.297614 master_client.go:39 connect to 127.0.0.1:19350: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial tcp 127.0.0.1:29350: connect: connection refused"
+I1118 10:27:17.499655 master_client.go:39 connect to 127.0.0.1:19350: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial tcp 127.0.0.1:29350: connect: connection refused"
+I1118 10:27:17.701512 master_client.go:39 connect to 127.0.0.1:19350: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial tcp 127.0.0.1:29350: connect: connection refused"
+I1118 10:27:17.715950 shutdown.go:15 Gracefully stopping gRPC server
+I1118 10:27:17.726835 filer_grpc_server_sub_meta.go:1112 disconnect filer:127.0.0.1:19354.29354@127.0.0.1:56528 local subscriber / clientId:-510912082
+I1118 10:27:17.726889 filer_grpc_server_sub_meta.go:1753 - local listener filer:127.0.0.1:19354.29354@127.0.0.1:56528 clientId -510912082 clientEpoch 1
+I1118 10:27:17.727675 shutdown.go:23 gRPC server stopped gracefully
+I1118 10:27:17.727754 filer_server.go:492 Shutting down filer
+I1118 10:27:17.727860 meta_aggregator.go:702 SubscribeLocalMetadata stream 127.0.0.1:19354: rpc error: code = Unavailable desc = filer is shutting down
+I1118 10:27:17.727924 filer_deletion.go:317 deletion processor shutting down
+I1118 10:27:17.727924 filer_deletion.go:543 retry processor shutting down, 0 items remaining in queue
+I1118 10:27:17.728175 meta_aggregator.go:481 subscribing remote 127.0.0.1:19354 meta change: rpc error: code = Unavailable desc = filer is shutting down
+I1118 10:27:19.301887 meta_aggregator.go:465 loopSubscribeToOneFiler read 127.0.0.1:19354 start from 2026-11-18 10:26:14.768615307 +0800 CST 1794968774768615307
+I1118 10:27:19.303486 meta_aggregator.go:481 subscribing remote 127.0.0.1:19354 meta change: connecting to peer filer 127.0.0.1:19354: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial tcp 127.0.0.1:29354: connect: connection refused"
+I1118 10:27:21.043969 meta_aggregator.go:465 loopSubscribeToOneFiler read 127.0.0.1:19354 start from 2026-11-18 10:26:14.768615307 +0800 CST 1794968774768615307
+I1118 10:27:21.046619 meta_aggregator.go:481 subscribing remote 127.0.0.1:19354 meta change: connecting to peer filer 127.0.0.1:19354: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial tcp 127.0.0.1:29354: connect: connection refused"
+I1118 10:27:22.780457 meta_aggregator.go:465 loopSubscribeToOneFiler read 127.0.0.1:19354 start from 2026-11-18 10:26:14.768615307 +0800 CST 1794968774768615307
+I1118 10:27:22.781533 meta_aggregator.go:481 subscribing remote 127.0.0.1:19354 meta change: connecting to peer filer 127.0.0.1:19354: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial tcp 127.0.0.1:29354: connect: connection refused"
+I1118 10:27:23.006989 masterclient.go:762 .filer WaitUntilConnected still waiting for master connection (attempt 100)...
+I1118 10:27:24.514915 meta_aggregator.go:465 loopSubscribeToOneFiler read 127.0.0.1:19354 start from 2026-11-18 10:26:14.768615307 +0800 CST 1794968774768615307
+I1118 10:27:24.515635 meta_aggregator.go:481 subscribing remote 127.0.0.1:19354 meta change: connecting to peer filer 127.0.0.1:19354: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial tcp 127.0.0.1:29354: connect: connection refused"
+I1118 10:27:26.250019 meta_aggregator.go:465 loopSubscribeToOneFiler read 127.0.0.1:19354 start from 2026-11-18 10:26:14.768615307 +0800 CST 1794968774768615307
+I1118 10:27:26.251671 meta_aggregator.go:481 subscribing remote 127.0.0.1:19354 meta change: connecting to peer filer 127.0.0.1:19354: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial tcp 127.0.0.1:29354: connect: connection refused"
+I1118 10:27:27.985498 meta_aggregator.go:465 loopSubscribeToOneFiler read 127.0.0.1:19354 start from 2026-11-18 10:26:14.768615307 +0800 CST 1794968774768615307
+I1118 10:27:27.987312 meta_aggregator.go:481 subscribing remote 127.0.0.1:19354 meta change: connecting to peer filer 127.0.0.1:19354: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial tcp 127.0.0.1:29354: connect: connection refused"
+I1118 10:27:29.721560 meta_aggregator.go:465 loopSubscribeToOneFiler read 127.0.0.1:19354 start from 2026-11-18 10:26:14.768615307 +0800 CST 1794968774768615307
+I1118 10:27:29.723696 meta_aggregator.go:481 subscribing remote 127.0.0.1:19354 meta change: connecting to peer filer 127.0.0.1:19354: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial tcp 127.0.0.1:29354: connect: connection refused"
+I1118 10:27:30.091293 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/02-25.1e73e652: AssignVolume: rpc error: code = DeadlineExceeded desc = context deadline exceeded
+I1118 10:27:31.458465 meta_aggregator.go:465 loopSubscribeToOneFiler read 127.0.0.1:19354 start from 2026-11-18 10:26:14.768615307 +0800 CST 1794968774768615307
+I1118 10:27:31.459908 meta_aggregator.go:481 subscribing remote 127.0.0.1:19354 meta change: connecting to peer filer 127.0.0.1:19354: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial tcp 127.0.0.1:29354: connect: connection refused"
+I1118 10:27:32.568316 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/02-25.1e73e652: AssignVolume: rpc error: code = Canceled desc = context canceled
+I1118 10:27:32.568398 filer_notify.go:384 metadata log flush abandoned during shutdown, 346 bytes left for /topics/.system/log/2026-11-18/02-25.1e73e652: context canceled
+W1118 10:27:32.568474 log_buffer.go:828 log buffer local: shutdown flush dropped 346 bytes
+I1118 10:27:32.568938 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/02-26.1e73e652: AssignVolume: context canceled
+I1118 10:27:32.568955 filer_notify.go:384 metadata log flush abandoned during shutdown, 224 bytes left for /topics/.system/log/2026-11-18/02-26.1e73e652: context canceled
+W1118 10:27:32.568968 log_buffer.go:828 log buffer local: shutdown flush dropped 224 bytes
+I1118 10:27:32.569009 meta_aggregator.go:488 stop subscribing peer 127.0.0.1:19354 meta change
+I1118 10:28:26.991901 filer.go:411 Initialized credential manager: filer_etc
+I1118 10:28:26.996862 filer_server.go:295 default to create filer store dir in /mnt/lima-colima/native-arm/ldb/filerldb2
+I1118 10:28:27.004364 filer_server.go:303 max_file_name_length 255
+I1118 10:28:27.026071 leveldb2_store.go:94 filer store leveldb2 dir: /mnt/lima-colima/native-arm/ldb/filerldb2
+I1118 10:28:27.026159 file_util.go:29 Folder /mnt/lima-colima/native-arm/ldb/filerldb2 Permission: -rwxr-xr-x
+I1118 10:28:27.085952 filer.go:435 create filer.store.id to 1158253047
+I1118 10:28:27.086113 configuration.go:29 configured filer store to leveldb2
+I1118 10:28:27.086426 filer_server_tus_session.go:637 TUS session cleanup started with interval 1h0m0s
+I1118 10:28:27.088368 master_client.go:27 the cluster has 0 filers
+I1118 10:28:28.089471 master_client.go:27 the cluster has 0 filers
+I1118 10:28:28.959766 master_client.go:27 the cluster has 0 filers
+I1118 10:28:29.961899 master_client.go:27 the cluster has 0 filers
+I1118 10:28:29.962558 master_client.go:27 the cluster has 0 filers
+I1118 10:28:29.962667 filer_server.go:399 127.0.0.1:19354 bootstrap from peers []
+I1118 10:28:29.962800 filer.go:273 127.0.0.1:19354 aggregate from peers []
+I1118 10:28:29.973072 filer.go:495 Start Seaweed Filer 30GB 4.54 5ef99c1d8 at 127.0.0.1:19354
+I1118 10:28:29.973569 meta_aggregator.go:465 loopSubscribeToOneFiler read 127.0.0.1:19354 start from 2026-11-18 10:27:29.962649301 +0800 CST 1794968849962649301
+W1118 10:28:29.974217 filer.go:530 IAM gRPC service on filer is UNAUTHENTICATED: anyone who can reach this port can create users and policies, and its OIDC provider and role RPCs are refused; set jwt.filer_signing.key in security.toml to require an admin Bearer token
+I1118 10:28:29.978607 master_client.go:27 the cluster has 0 filers
+I1118 10:28:29.979333 meta_aggregator.go:647 subscribing remote 127.0.0.1:19354 meta change: 2026-11-18 10:27:29.962649301 +0800 CST, clientId:796143658
+I1118 10:28:29.981921 filer_grpc_server_sub_meta.go:1725 + local listener filer:127.0.0.1:19354.29354@127.0.0.1:47500 clientId -796143658 clientEpoch 1
+I1118 10:28:29.981974 filer_grpc_server_sub_meta.go:1117  + filer:127.0.0.1:19354.29354@127.0.0.1:47500 local subscribe / from {Time:2026-11-18 02:27:29.962649301 +0000 UTC Offset:-7 IsOffsetBased:false} clientId:-796143658
+I1118 10:28:30.980895 master_client.go:27 the cluster has 0 filers
+I1118 10:28:31.982954 master_client.go:27 the cluster has 0 filers
+I1118 10:28:32.985168 master_client.go:27 the cluster has 0 filers
+I1118 10:28:32.985911 master_client.go:27 the cluster has 0 filers
+I1118 10:28:33.987497 master_client.go:27 the cluster has 0 filers
+I1118 10:28:34.990289 master_client.go:27 the cluster has 0 filers
+I1118 10:28:35.993179 master_client.go:27 the cluster has 0 filers
+I1118 10:28:36.995325 master_client.go:27 the cluster has 0 filers
+I1118 10:28:36.995943 master_client.go:27 the cluster has 0 filers
+I1118 10:28:37.998281 master_client.go:27 the cluster has 0 filers
+I1118 10:28:39.000003 master_client.go:27 the cluster has 0 filers
+I1118 10:28:39.872693 master_client.go:27 the cluster has 0 filers
+I1118 10:28:40.743580 filer_grpc_server_sub_meta.go:1725 + local listener mount@127.0.0.1:43150 clientId 690445401 clientEpoch 2
+I1118 10:28:40.743628 filer_grpc_server_sub_meta.go:1117  + mount@127.0.0.1:43150 local subscribe / from {Time:2026-11-18 02:28:40.737913198 +0000 UTC Offset:-7 IsOffsetBased:false} clientId:690445401
+I1118 10:28:40.874853 master_client.go:27 the cluster has 0 filers
+I1118 10:28:40.875535 master_client.go:27 the cluster has 0 filers
+I1118 10:28:40.877947 masterclient.go:544 updateVidMap ignore short heartbeat: volume_location:{leader:"127.0.0.1:19350.29350"}
+I1118 10:28:40.878204 masterclient.go:465 + filer@127.0.0.1:19354 noticed .filer 127.0.0.1:19354.29354
+I1118 10:28:40.878237 masterclient.go:465 + filer@127.0.0.1:19354 noticed .filer 127.0.0.1:19354.29354
+I1118 10:28:41.878638 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794968921876994658: [127.0.0.1:19354.29354]
+I1118 10:28:41.878771 filer.go:295 LockRing: applying master ring update v1794968921876994658: [127.0.0.1:19354]
+I1118 10:29:11.532122 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794968951531360159: [127.0.0.1:19354.29354]
+I1118 10:29:11.532254 filer.go:295 LockRing: applying master ring update v1794968951531360159: [127.0.0.1:19354]
+I1118 10:29:34.069253 retry.go:230 retry assign: giving up after 29.999990384s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:29:41.404966 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794968981404331974: [127.0.0.1:19354.29354]
+I1118 10:29:41.405045 filer.go:295 LockRing: applying master ring update v1794968981404331974: [127.0.0.1:19354]
+I1118 10:29:56.291512 retry.go:230 retry assign: giving up after 29.999986243s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:29:56.291837 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/02-28.2f74302a: AssignVolume: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:30:05.071656 retry.go:230 retry assign: giving up after 29.999998082s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:30:05.086559 retry.go:230 retry assign: giving up after 29.999997499s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:30:05.173042 retry.go:230 retry assign: giving up after 29.999985368s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:30:05.248096 retry.go:230 retry assign: giving up after 29.999996916s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:30:11.244306 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794969011243668049: [127.0.0.1:19354.29354]
+I1118 10:30:11.244388 filer.go:295 LockRing: applying master ring update v1794969011243668049: [127.0.0.1:19354]
+I1118 10:30:26.739336 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/02-28.2f74302a: AssignVolume: context deadline exceeded
+I1118 10:30:36.150976 retry.go:230 retry assign: giving up after 29.999997278s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:30:40.878634 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794969040877959862: [127.0.0.1:19354.29354]
+I1118 10:30:40.878738 filer.go:295 LockRing: applying master ring update v1794969040877959862: [127.0.0.1:19354]
+I1118 10:30:57.128778 retry.go:230 retry assign: giving up after 29.99998744s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:30:57.128967 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/02-28.2f74302a: AssignVolume: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:31:08.005048 retry.go:230 retry assign: giving up after 29.999997312s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:31:10.524590 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794969070523437549: [127.0.0.1:19354.29354]
+I1118 10:31:10.524713 filer.go:295 LockRing: applying master ring update v1794969070523437549: [127.0.0.1:19354]
+I1118 10:31:27.496373 retry.go:230 retry assign: giving up after 29.999990919s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:31:27.496660 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/02-28.2f74302a: AssignVolume: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:31:40.138839 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794969100138124103: [127.0.0.1:19354.29354]
+I1118 10:31:40.138953 filer.go:295 LockRing: applying master ring update v1794969100138124103: [127.0.0.1:19354]
+I1118 10:31:40.816132 retry.go:230 retry assign: giving up after 29.999992516s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:31:40.849105 retry.go:230 retry assign: giving up after 29.999982098s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:31:41.037257 retry.go:230 retry assign: giving up after 29.999998086s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:31:41.109893 retry.go:230 retry assign: giving up after 29.999987966s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:31:57.852899 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/02-28.2f74302a: AssignVolume: context deadline exceeded
+I1118 10:32:09.767696 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794969129766762788: [127.0.0.1:19354.29354]
+I1118 10:32:09.767856 filer.go:295 LockRing: applying master ring update v1794969129766762788: [127.0.0.1:19354]
+I1118 10:32:28.217411 retry.go:230 retry assign: giving up after 29.999987953s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:32:28.217712 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/02-28.2f74302a: AssignVolume: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:32:39.505226 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794969159504405744: [127.0.0.1:19354.29354]
+I1118 10:32:39.505447 filer.go:295 LockRing: applying master ring update v1794969159504405744: [127.0.0.1:19354]
+I1118 10:32:58.827176 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/02-28.2f74302a: AssignVolume: context deadline exceeded
+I1118 10:33:09.506197 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794969189505162912: [127.0.0.1:19354.29354]
+I1118 10:33:09.506335 filer.go:295 LockRing: applying master ring update v1794969189505162912: [127.0.0.1:19354]
+I1118 10:33:17.746180 retry.go:230 retry assign: giving up after 29.999996832s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:33:29.277420 retry.go:230 retry assign: giving up after 29.999974987s: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:33:29.277647 filer_notify.go:375 metadata log write failed /topics/.system/log/2026-11-18/02-28.2f74302a: AssignVolume: rpc error: code = ResourceExhausted desc = no volume server capacity registered yet for {"replication":{},"ttl":{"Count":0,"Unit":0},"version":3}
+I1118 10:33:39.080118 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794969219079275547: [127.0.0.1:19354.29354]
+I1118 10:33:39.080347 filer.go:295 LockRing: applying master ring update v1794969219079275547: [127.0.0.1:19354]
+I1118 10:34:08.847280 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794969248845646035: [127.0.0.1:19354.29354]
+I1118 10:34:08.847672 filer.go:295 LockRing: applying master ring update v1794969248845646035: [127.0.0.1:19354]
+I1118 10:34:38.472851 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794969278471649810: [127.0.0.1:19354.29354]
+I1118 10:34:38.473177 filer.go:295 LockRing: applying master ring update v1794969278471649810: [127.0.0.1:19354]
+I1118 10:35:08.099961 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794969308094414322: [127.0.0.1:19354.29354]
+I1118 10:38:16.537997 filer.go:295 LockRing: applying master ring update v1794969308094414322: [127.0.0.1:19354]
+I1118 10:38:16.561163 filer_grpc_server_sub_meta.go:1725 + local listener mount@127.0.0.1:57908 clientId 690445401 clientEpoch 3
+I1118 10:38:16.561605 filer_grpc_server_sub_meta.go:1117  + mount@127.0.0.1:57908 local subscribe / from {Time:2026-11-18 02:28:40.737913198 +0000 UTC Offset:-7 IsOffsetBased:false} clientId:690445401
+I1118 10:38:16.562693 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794969337886239609: [127.0.0.1:19354.29354]
+I1118 10:38:16.562793 filer.go:295 LockRing: applying master ring update v1794969337886239609: [127.0.0.1:19354]
+I1118 10:38:16.562840 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794969367886939962: [127.0.0.1:19354.29354]
+I1118 10:38:16.562898 filer.go:295 LockRing: applying master ring update v1794969367886939962: [127.0.0.1:19354]
+I1118 10:38:16.562957 masterclient.go:442 .filer masterClient failed to receive from 127.0.0.1:19350: rpc error: code = Unavailable desc = error reading from server: EOF
+I1118 10:38:16.572839 filer_grpc_server_dlm.go:62 FILER LOCK: Error - name=/fio/buffer-1m.0 error=lock: non-empty token on a new lock
+I1118 10:38:16.573347 filer_grpc_server_dlm.go:62 FILER LOCK: Error - name=/fio/buffer-1m.0 error=lock: non-empty token on a new lock
+I1118 10:38:16.784757 filer_grpc_server_sub_meta.go:1112 disconnect mount@127.0.0.1:43150 local subscriber / clientId:690445401
+I1118 10:38:16.784899 filer_grpc_server_sub_meta.go:1753 - local listener mount@127.0.0.1:43150 clientId 690445401 clientEpoch 2
+I1118 10:38:17.567223 masterclient.go:791 .filer masterClient reconnection attempt #1
+I1118 10:38:17.575217 masterclient.go:465 + filer@127.0.0.1:19354 noticed .filer 127.0.0.1:19354.29354
+I1118 10:38:17.575434 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794969367886939962: [127.0.0.1:19354.29354]
+I1118 10:38:17.575484 filer.go:295 LockRing: applying master ring update v1794969367886939962: [127.0.0.1:19354]
+I1118 10:38:17.575526 masterclient.go:465 + filer@127.0.0.1:19354 noticed .filer 127.0.0.1:19354.29354
+I1118 10:38:18.575789 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794969498575053984: [127.0.0.1:19354.29354]
+I1118 10:38:18.575834 filer.go:295 LockRing: applying master ring update v1794969498575053984: [127.0.0.1:19354]
+I1118 10:38:48.209633 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794969528207176807: [127.0.0.1:19354.29354]
+I1118 10:38:48.210339 filer.go:295 LockRing: applying master ring update v1794969528207176807: [127.0.0.1:19354]
+I1118 10:39:17.847171 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794969557845052978: [127.0.0.1:19354.29354]
+I1118 10:39:17.847856 filer.go:295 LockRing: applying master ring update v1794969557845052978: [127.0.0.1:19354]
+I1118 10:39:47.479630 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794969587478264608: [127.0.0.1:19354.29354]
+I1118 10:39:47.479870 filer.go:295 LockRing: applying master ring update v1794969587478264608: [127.0.0.1:19354]
+I1118 10:40:17.100484 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794969617099319795: [127.0.0.1:19354.29354]
+I1118 10:40:17.100626 filer.go:295 LockRing: applying master ring update v1794969617099319795: [127.0.0.1:19354]
+I1118 10:40:46.734881 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794969646732384351: [127.0.0.1:19354.29354]
+I1118 10:40:46.735289 filer.go:295 LockRing: applying master ring update v1794969646732384351: [127.0.0.1:19354]
+I1118 10:41:16.359189 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794969676356706095: [127.0.0.1:19354.29354]
+I1118 10:41:16.359796 filer.go:295 LockRing: applying master ring update v1794969676356706095: [127.0.0.1:19354]
+I1118 10:41:45.996464 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794969705994920020: [127.0.0.1:19354.29354]
+I1118 10:41:45.996673 filer.go:295 LockRing: applying master ring update v1794969705994920020: [127.0.0.1:19354]
+I1118 10:42:15.611642 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794969735611011889: [127.0.0.1:19354.29354]
+I1118 10:42:15.611695 filer.go:295 LockRing: applying master ring update v1794969735611011889: [127.0.0.1:19354]
+I1118 10:42:45.247570 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794969765246226838: [127.0.0.1:19354.29354]
+I1118 10:42:45.247706 filer.go:295 LockRing: applying master ring update v1794969765246226838: [127.0.0.1:19354]
+I1118 10:43:14.857491 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794969794856142207: [127.0.0.1:19354.29354]
+I1118 10:43:14.857769 filer.go:295 LockRing: applying master ring update v1794969794856142207: [127.0.0.1:19354]
+I1118 10:43:44.442783 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794969824441807992: [127.0.0.1:19354.29354]
+I1118 10:43:44.442857 filer.go:295 LockRing: applying master ring update v1794969824441807992: [127.0.0.1:19354]
+I1118 10:44:14.038967 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794969854036908373: [127.0.0.1:19354.29354]
+I1118 10:44:14.039101 filer.go:295 LockRing: applying master ring update v1794969854036908373: [127.0.0.1:19354]
+I1118 10:44:43.642274 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794969883641528767: [127.0.0.1:19354.29354]
+I1118 10:44:43.642322 filer.go:295 LockRing: applying master ring update v1794969883641528767: [127.0.0.1:19354]
+I1118 10:45:13.223881 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794969913222925108: [127.0.0.1:19354.29354]
+I1118 10:45:13.224110 filer.go:295 LockRing: applying master ring update v1794969913222925108: [127.0.0.1:19354]
+I1118 10:45:42.809867 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794969942809259291: [127.0.0.1:19354.29354]
+I1118 10:45:42.809946 filer.go:295 LockRing: applying master ring update v1794969942809259291: [127.0.0.1:19354]
+I1118 10:46:12.415555 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794969972414347463: [127.0.0.1:19354.29354]
+I1118 10:46:12.415769 filer.go:295 LockRing: applying master ring update v1794969972414347463: [127.0.0.1:19354]
+I1118 10:46:42.004854 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794970002004335757: [127.0.0.1:19354.29354]
+I1118 10:46:42.004947 filer.go:295 LockRing: applying master ring update v1794970002004335757: [127.0.0.1:19354]
+I1118 10:47:08.071520 filer_grpc_server_sub_meta.go:1112 disconnect mount@127.0.0.1:57908 local subscriber / clientId:690445401
+I1118 10:47:08.071689 filer_grpc_server_sub_meta.go:1753 - local listener mount@127.0.0.1:57908 clientId 690445401 clientEpoch 3
+I1118 10:47:11.609179 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794970031608279782: [127.0.0.1:19354.29354]
+I1118 10:47:11.609304 filer.go:295 LockRing: applying master ring update v1794970031608279782: [127.0.0.1:19354]
+I1118 10:47:16.198054 filer_grpc_server_sub_meta.go:1725 + local listener mount@127.0.0.1:34468 clientId 1501455239 clientEpoch 2
+I1118 10:47:16.198211 filer_grpc_server_sub_meta.go:1117  + mount@127.0.0.1:34468 local subscribe / from {Time:2026-11-18 02:47:16.195317502 +0000 UTC Offset:-7 IsOffsetBased:false} clientId:1501455239
+I1118 10:47:41.188022 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794970061186924870: [127.0.0.1:19354.29354]
+I1118 10:47:41.188148 filer.go:295 LockRing: applying master ring update v1794970061186924870: [127.0.0.1:19354]
+I1118 10:48:10.795827 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794970090795009313: [127.0.0.1:19354.29354]
+I1118 10:48:10.796091 filer.go:295 LockRing: applying master ring update v1794970090795009313: [127.0.0.1:19354]
+I1118 10:48:40.367311 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794970120366269851: [127.0.0.1:19354.29354]
+I1118 10:48:40.367420 filer.go:295 LockRing: applying master ring update v1794970120366269851: [127.0.0.1:19354]
+I1118 10:49:09.957109 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794970149956787574: [127.0.0.1:19354.29354]
+I1118 10:49:09.957177 filer.go:295 LockRing: applying master ring update v1794970149956787574: [127.0.0.1:19354]
+I1118 10:49:39.564802 masterclient.go:480 LockRing: filer@127.0.0.1:19354 received ring update v1794970179564064999: [127.0.0.1:19354.29354]
+I1118 10:49:39.564937 filer.go:295 LockRing: applying master ring update v1794970179564064999: [127.0.0.1:19354]
+I1118 10:49:59.182534 master_client.go:27 the cluster has 0 filers
+I1118 10:49:59.184617 shutdown.go:15 Gracefully stopping gRPC server
+I1118 10:49:59.240144 filer_grpc_server_sub_meta.go:1112 disconnect mount@127.0.0.1:34468 local subscriber / clientId:1501455239
+I1118 10:49:59.241250 filer_grpc_server_sub_meta.go:1753 - local listener mount@127.0.0.1:34468 clientId 1501455239 clientEpoch 2
+I1118 10:49:59.242597 filer_grpc_server_sub_meta.go:1112 disconnect filer:127.0.0.1:19354.29354@127.0.0.1:47500 local subscriber / clientId:-796143658
+I1118 10:49:59.242646 filer_grpc_server_sub_meta.go:1753 - local listener filer:127.0.0.1:19354.29354@127.0.0.1:47500 clientId -796143658 clientEpoch 1
+I1118 10:49:59.243229 meta_aggregator.go:702 SubscribeLocalMetadata stream 127.0.0.1:19354: rpc error: code = Unavailable desc = filer is shutting down
+I1118 10:49:59.243746 meta_aggregator.go:481 subscribing remote 127.0.0.1:19354 meta change: rpc error: code = Unavailable desc = filer is shutting down
+I1118 10:49:59.243996 shutdown.go:23 gRPC server stopped gracefully
+I1118 10:49:59.244039 filer_server.go:492 Shutting down filer
+I1118 10:49:59.244263 filer_deletion.go:317 deletion processor shutting down
+I1118 10:49:59.244356 filer_deletion.go:543 retry processor shutting down, 0 items remaining in queue
+I1118 10:49:59.244456 meta_aggregator.go:488 stop subscribing peer 127.0.0.1:19354 meta change

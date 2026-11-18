@@ -1,0 +1,3 @@
+case,bw,bytes,landed_bytes,rc
+odirect-1m,5955KiB/s,10737418240,14597645344,0
+odirect-8m,31.4MiB/s,10737418240,11109848432,0

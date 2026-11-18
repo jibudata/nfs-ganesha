@@ -1,0 +1,119 @@
+# =====================================================================
+# SeaweedFS volume server for the ganesha-seaweedfs test stack.
+#
+# The volume server registers the NODE IP (172.18.0.2) and publishes its
+# real port as a hostPort.  That address is handed to the FUSE client by
+# the filer (weed/filer/reader_at.go:123 -> dn.Url()), and it is the
+# SAME address for both arms:
+#
+#   host weed mount -> 172.18.0.2:8080/<fileId>
+#   pod weed mount  -> 172.18.0.2:8080/<fileId>
+#
+# Registering the pod IP would work for the pod arm but not for the host
+# arm, so the shared backend uses the node IP + hostPort instead.  See
+# LAB-CONVENTIONS R19/R20.  No MetalLB is involved.
+# =====================================================================
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: seaweedfs-volume
+  namespace: ganesha-seaweedfs
+  labels:
+    app: seaweedfs-volume
+spec:
+  serviceName: seaweedfs-volume
+  replicas: 1
+  selector:
+    matchLabels:
+      app: seaweedfs-volume
+  template:
+    metadata:
+      labels:
+        app: seaweedfs-volume
+    spec:
+      terminationGracePeriodSeconds: 60
+      containers:
+        - name: volume
+          image: seaweedfs-lab:4.54
+          imagePullPolicy: Never
+          command:
+            - /usr/local/bin/weed
+            - server
+          args:
+            - -master=false
+            - -filer=false
+            # The address the master records and both FUSE clients use.
+            - -ip=172.18.0.2
+            # Bind inside the pod; the hostPort publishes it on the node.
+            - -ip.bind=0.0.0.0
+            - -volume.port=8080
+            - -volume.port.grpc=18080
+            # The master is reached at its hostPort.
+            - -master.peers=172.18.0.2:9333
+            - -master.port=9333
+            - -master.port.grpc=19333
+            - -dir=/data/vol
+            # 4 GiB volumes and a 6 GiB write: the pool needs more than
+            # the default 8 slots, or the master runs out of writable
+            # volumes after a handful of 4 GiB files.
+            - -volume.max=64
+            - -volume.readMode=local
+            - -dataCenter=dc1
+          ports:
+            - name: http
+              containerPort: 8080
+              hostPort: 8080
+            - name: grpc
+              containerPort: 18080
+              hostPort: 18080
+          volumeMounts:
+            - name: vol
+              mountPath: /data/vol
+          readinessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          livenessProbe:
+            tcpSocket:
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+            # CPU limit removed for the sustained-write tuning; the
+            # volume server was capped at 2 CPUs on a 16-vCPU node.
+            limits:
+              memory: 4Gi
+  volumeClaimTemplates:
+    - metadata:
+        name: vol
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            # A test namespace, not the 50 GiB benchmark matrix; the
+            # local-path provisioner backs this with a directory on the
+            # node's disk.
+            storage: 20Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: seaweedfs-volume
+  namespace: ganesha-seaweedfs
+  labels:
+    app: seaweedfs-volume
+spec:
+  selector:
+    app: seaweedfs-volume
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+    - name: grpc
+      port: 18080
+      targetPort: grpc

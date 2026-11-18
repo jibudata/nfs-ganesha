@@ -1,0 +1,95 @@
+18/11/2026 09:30:04 : epoch 6afcff9c : colima : ganesha.nfsd-81005[main] init_logging :LOG :NULL :LOG: Setting log level for all components to NIV_EVENT
+18/11/2026 09:30:04 : epoch 6afcff9c : colima : ganesha.nfsd-81005[main] main :MAIN :EVENT :ganesha.nfsd Starting: Ganesha Version 15.9
+18/11/2026 09:30:04 : epoch 6afcff9c : colima : ganesha.nfsd-81005[main] main :MAIN :EVENT :Initializing nfs_init
+18/11/2026 09:30:04 : epoch 6afcff9c : colima : ganesha.nfsd-81005[main] main :MAIN :EVENT :Checking malloc
+18/11/2026 09:30:04 : epoch 6afcff9c : colima : ganesha.nfsd-81005[main] main :MAIN :EVENT :Writing PID file
+18/11/2026 09:30:04 : epoch 6afcff9c : colima : ganesha.nfsd-81005[main] main :MAIN :FATAL :open(/var/run/ganesha/ganesha.pid, O_CREAT | O_RDWR, 0644) failed for pid file, errno was: No such file or directory (2)
+18/11/2026 09:30:04 : epoch 6afcff9c : colima : ganesha.nfsd-81005[main] gsh_backtrace :NFS STARTUP :MAJ :stack backtrace follows:
+/usr/local/lib/libganesha_nfsd.so.15.9(+0x9e528)[0xe21c65e3e528]
+/usr/local/lib/libganesha_nfsd.so.15.9(+0x9a61c)[0xe21c65e3a61c]
+/usr/local/lib/libganesha_nfsd.so.15.9(+0x9a8ac)[0xe21c65e3a8ac]
+/usr/local/lib/libganesha_nfsd.so.15.9(DisplayLogComponentLevel+0x78)[0xe21c65e3ac4c]
+/usr/local/bin/ganesha.nfsd(+0x2f44)[0xb5a4408e2f44]
+/lib/aarch64-linux-gnu/libc.so.6(+0x284c4)[0xe21c65a684c4]
+/lib/aarch64-linux-gnu/libc.so.6(__libc_start_main+0x98)[0xe21c65a68598]
+/usr/local/bin/ganesha.nfsd(+0x3170)[0xb5a4408e3170]
+18/11/2026 09:30:45 : epoch 6afcffc5 : colima : ganesha.nfsd-81489[main] init_logging :LOG :NULL :LOG: Setting log level for all components to NIV_EVENT
+18/11/2026 09:30:45 : epoch 6afcffc5 : colima : ganesha.nfsd-81489[main] main :MAIN :EVENT :ganesha.nfsd Starting: Ganesha Version 15.9
+18/11/2026 09:30:45 : epoch 6afcffc5 : colima : ganesha.nfsd-81489[main] main :MAIN :EVENT :Initializing nfs_init
+18/11/2026 09:30:45 : epoch 6afcffc5 : colima : ganesha.nfsd-81489[main] main :MAIN :EVENT :Checking malloc
+18/11/2026 09:30:45 : epoch 6afcffc5 : colima : ganesha.nfsd-81489[main] main :MAIN :EVENT :Writing PID file
+18/11/2026 09:30:45 : epoch 6afcffc5 : colima : ganesha.nfsd-81489[main] main :MAIN :EVENT :Initializing URL package
+18/11/2026 09:30:45 : epoch 6afcffc5 : colima : ganesha.nfsd-81489[main] main :MAIN :EVENT :Initializing error type
+18/11/2026 09:30:45 : epoch 6afcffc5 : colima : ganesha.nfsd-81489[main] main :MAIN :EVENT :Parsing configuration file
+18/11/2026 09:30:45 : epoch 6afcffc5 : colima : ganesha.nfsd-81489[main] main :MAIN :EVENT :Reading log configuration
+18/11/2026 09:30:45 : epoch 6afcffc5 : colima : ganesha.nfsd-81489[main] reset_conditional_logging_state :LOG :EVENT :Conditional logging configuration reset to defaults
+18/11/2026 09:35:11 : epoch 6afd00cf : colima : ganesha.nfsd-84495[main] init_logging :LOG :NULL :LOG: Setting log level for all components to NIV_EVENT
+18/11/2026 09:35:11 : epoch 6afd00cf : colima : ganesha.nfsd-84495[main] main :MAIN :EVENT :ganesha.nfsd Starting: Ganesha Version 15.9
+18/11/2026 09:35:11 : epoch 6afd00cf : colima : ganesha.nfsd-84495[main] main :MAIN :EVENT :Initializing nfs_init
+18/11/2026 09:35:11 : epoch 6afd00cf : colima : ganesha.nfsd-84495[main] main :MAIN :EVENT :Checking malloc
+18/11/2026 09:35:11 : epoch 6afd00cf : colima : ganesha.nfsd-84495[main] main :MAIN :EVENT :Writing PID file
+18/11/2026 09:35:11 : epoch 6afd00cf : colima : ganesha.nfsd-84495[main] main :MAIN :EVENT :Initializing URL package
+18/11/2026 09:35:11 : epoch 6afd00cf : colima : ganesha.nfsd-84495[main] main :MAIN :EVENT :Initializing error type
+18/11/2026 09:35:11 : epoch 6afd00cf : colima : ganesha.nfsd-84495[main] main :MAIN :EVENT :Parsing configuration file
+18/11/2026 09:35:11 : epoch 6afd00cf : colima : ganesha.nfsd-84495[main] main :MAIN :EVENT :Reading log configuration
+18/11/2026 09:35:11 : epoch 6afd00cf : colima : ganesha.nfsd-84495[main] reset_conditional_logging_state :LOG :EVENT :Conditional logging configuration reset to defaults
+18/11/2026 09:35:42 : epoch 6afd00ee : colima : ganesha.nfsd-84849[main] init_logging :LOG :NULL :LOG: Setting log level for all components to NIV_EVENT
+18/11/2026 09:35:42 : epoch 6afd00ee : colima : ganesha.nfsd-84849[main] main :MAIN :EVENT :ganesha.nfsd Starting: Ganesha Version 15.9
+18/11/2026 09:35:42 : epoch 6afd00ee : colima : ganesha.nfsd-84849[main] main :MAIN :EVENT :Initializing nfs_init
+18/11/2026 09:35:42 : epoch 6afd00ee : colima : ganesha.nfsd-84849[main] main :MAIN :EVENT :Checking malloc
+18/11/2026 09:35:42 : epoch 6afd00ee : colima : ganesha.nfsd-84849[main] main :MAIN :EVENT :Writing PID file
+18/11/2026 09:35:42 : epoch 6afd00ee : colima : ganesha.nfsd-84849[main] main :MAIN :EVENT :Initializing URL package
+18/11/2026 09:35:42 : epoch 6afd00ee : colima : ganesha.nfsd-84849[main] main :MAIN :EVENT :Initializing error type
+18/11/2026 09:35:42 : epoch 6afd00ee : colima : ganesha.nfsd-84849[main] main :MAIN :EVENT :Parsing configuration file
+18/11/2026 09:35:42 : epoch 6afd00ee : colima : ganesha.nfsd-84849[main] main :MAIN :EVENT :Reading log configuration
+18/11/2026 09:35:42 : epoch 6afd00ee : colima : ganesha.nfsd-84849[main] reset_conditional_logging_state :LOG :EVENT :Conditional logging configuration reset to defaults
+18/11/2026 09:39:17 : epoch 6afd01c5 : colima : ganesha.nfsd-87691[main] init_logging :LOG :NULL :LOG: Setting log level for all components to NIV_EVENT
+18/11/2026 09:39:17 : epoch 6afd01c5 : colima : ganesha.nfsd-87691[main] main :MAIN :EVENT :ganesha.nfsd Starting: Ganesha Version 15.9
+18/11/2026 09:39:17 : epoch 6afd01c5 : colima : ganesha.nfsd-87691[main] main :MAIN :EVENT :Initializing nfs_init
+18/11/2026 09:39:17 : epoch 6afd01c5 : colima : ganesha.nfsd-87691[main] main :MAIN :EVENT :Checking malloc
+18/11/2026 09:39:17 : epoch 6afd01c5 : colima : ganesha.nfsd-87691[main] main :MAIN :EVENT :Writing PID file
+18/11/2026 09:39:17 : epoch 6afd01c5 : colima : ganesha.nfsd-87691[main] main :MAIN :EVENT :Initializing URL package
+18/11/2026 09:39:17 : epoch 6afd01c5 : colima : ganesha.nfsd-87691[main] main :MAIN :EVENT :Initializing error type
+18/11/2026 09:39:17 : epoch 6afd01c5 : colima : ganesha.nfsd-87691[main] main :MAIN :EVENT :Parsing configuration file
+18/11/2026 09:39:17 : epoch 6afd01c5 : colima : ganesha.nfsd-87691[main] main :MAIN :EVENT :Reading log configuration
+18/11/2026 09:39:17 : epoch 6afd01c5 : colima : ganesha.nfsd-87691[main] reset_conditional_logging_state :LOG :EVENT :Conditional logging configuration reset to defaults
+18/11/2026 10:25:05 : epoch 6afd0c81 : colima : ganesha.nfsd-120368[main] init_logging :LOG :NULL :LOG: Setting log level for all components to NIV_EVENT
+18/11/2026 10:25:05 : epoch 6afd0c81 : colima : ganesha.nfsd-120368[main] main :MAIN :EVENT :ganesha.nfsd Starting: Ganesha Version 15.9
+18/11/2026 10:25:05 : epoch 6afd0c81 : colima : ganesha.nfsd-120368[main] main :MAIN :EVENT :Initializing nfs_init
+18/11/2026 10:25:05 : epoch 6afd0c81 : colima : ganesha.nfsd-120368[main] main :MAIN :EVENT :Checking malloc
+18/11/2026 10:25:05 : epoch 6afd0c81 : colima : ganesha.nfsd-120368[main] main :MAIN :EVENT :Writing PID file
+18/11/2026 10:25:05 : epoch 6afd0c81 : colima : ganesha.nfsd-120368[main] main :MAIN :EVENT :Initializing URL package
+18/11/2026 10:25:05 : epoch 6afd0c81 : colima : ganesha.nfsd-120368[main] main :MAIN :EVENT :Initializing error type
+18/11/2026 10:25:05 : epoch 6afd0c81 : colima : ganesha.nfsd-120368[main] main :MAIN :EVENT :Parsing configuration file
+18/11/2026 10:25:05 : epoch 6afd0c81 : colima : ganesha.nfsd-120368[main] main :MAIN :EVENT :Reading log configuration
+18/11/2026 10:25:05 : epoch 6afd0c81 : colima : ganesha.nfsd-120368[main] reset_conditional_logging_state :LOG :EVENT :Conditional logging configuration reset to defaults
+18/11/2026 10:25:41 : epoch 6afd0ca5 : colima : ganesha.nfsd-120819[main] init_logging :LOG :NULL :LOG: Setting log level for all components to NIV_EVENT
+18/11/2026 10:25:41 : epoch 6afd0ca5 : colima : ganesha.nfsd-120819[main] main :MAIN :EVENT :ganesha.nfsd Starting: Ganesha Version 15.9
+18/11/2026 10:25:41 : epoch 6afd0ca5 : colima : ganesha.nfsd-120819[main] main :MAIN :EVENT :Initializing nfs_init
+18/11/2026 10:25:41 : epoch 6afd0ca5 : colima : ganesha.nfsd-120819[main] main :MAIN :EVENT :Checking malloc
+18/11/2026 10:25:41 : epoch 6afd0ca5 : colima : ganesha.nfsd-120819[main] main :MAIN :EVENT :Writing PID file
+18/11/2026 10:25:41 : epoch 6afd0ca5 : colima : ganesha.nfsd-120819[main] main :MAIN :EVENT :Initializing URL package
+18/11/2026 10:25:41 : epoch 6afd0ca5 : colima : ganesha.nfsd-120819[main] main :MAIN :EVENT :Initializing error type
+18/11/2026 10:25:41 : epoch 6afd0ca5 : colima : ganesha.nfsd-120819[main] main :MAIN :EVENT :Parsing configuration file
+18/11/2026 10:25:41 : epoch 6afd0ca5 : colima : ganesha.nfsd-120819[main] main :MAIN :EVENT :Reading log configuration
+18/11/2026 10:25:41 : epoch 6afd0ca5 : colima : ganesha.nfsd-120819[main] reset_conditional_logging_state :LOG :EVENT :Conditional logging configuration reset to defaults
+18/11/2026 10:28:32 : epoch 6afd0d50 : colima : ganesha.nfsd-122935[main] init_logging :LOG :NULL :LOG: Setting log level for all components to NIV_EVENT
+18/11/2026 10:28:32 : epoch 6afd0d50 : colima : ganesha.nfsd-122935[main] main :MAIN :EVENT :ganesha.nfsd Starting: Ganesha Version 15.9
+18/11/2026 10:28:32 : epoch 6afd0d50 : colima : ganesha.nfsd-122935[main] main :MAIN :EVENT :Initializing nfs_init
+18/11/2026 10:28:32 : epoch 6afd0d50 : colima : ganesha.nfsd-122935[main] main :MAIN :EVENT :Checking malloc
+18/11/2026 10:28:32 : epoch 6afd0d50 : colima : ganesha.nfsd-122935[main] main :MAIN :EVENT :Writing PID file
+18/11/2026 10:28:32 : epoch 6afd0d50 : colima : ganesha.nfsd-122935[main] main :MAIN :EVENT :Initializing URL package
+18/11/2026 10:28:32 : epoch 6afd0d50 : colima : ganesha.nfsd-122935[main] main :MAIN :EVENT :Initializing error type
+18/11/2026 10:28:32 : epoch 6afd0d50 : colima : ganesha.nfsd-122935[main] main :MAIN :EVENT :Parsing configuration file
+18/11/2026 10:28:32 : epoch 6afd0d50 : colima : ganesha.nfsd-122935[main] main :MAIN :EVENT :Reading log configuration
+18/11/2026 10:28:32 : epoch 6afd0d50 : colima : ganesha.nfsd-122935[main] reset_conditional_logging_state :LOG :EVENT :Conditional logging configuration reset to defaults
+18/11/2026 10:48:15 : epoch 6afd11ef : colima : ganesha.nfsd-136843[main] init_logging :LOG :NULL :LOG: Setting log level for all components to NIV_EVENT
+18/11/2026 10:48:15 : epoch 6afd11ef : colima : ganesha.nfsd-136843[main] main :MAIN :EVENT :ganesha.nfsd Starting: Ganesha Version 15.9
+18/11/2026 10:48:15 : epoch 6afd11ef : colima : ganesha.nfsd-136843[main] main :MAIN :EVENT :Initializing nfs_init
+18/11/2026 10:48:15 : epoch 6afd11ef : colima : ganesha.nfsd-136843[main] main :MAIN :EVENT :Checking malloc
+18/11/2026 10:48:15 : epoch 6afd11ef : colima : ganesha.nfsd-136843[main] main :MAIN :EVENT :Writing PID file
+18/11/2026 10:48:15 : epoch 6afd11ef : colima : ganesha.nfsd-136843[main] main :MAIN :EVENT :Initializing URL package
+18/11/2026 10:48:15 : epoch 6afd11ef : colima : ganesha.nfsd-136843[main] main :MAIN :EVENT :Initializing error type
+18/11/2026 10:48:15 : epoch 6afd11ef : colima : ganesha.nfsd-136843[main] main :MAIN :EVENT :Parsing configuration file
+18/11/2026 10:48:15 : epoch 6afd11ef : colima : ganesha.nfsd-136843[main] main :MAIN :EVENT :Reading log configuration
+18/11/2026 10:48:15 : epoch 6afd11ef : colima : ganesha.nfsd-136843[main] reset_conditional_logging_state :LOG :EVENT :Conditional logging configuration reset to defaults

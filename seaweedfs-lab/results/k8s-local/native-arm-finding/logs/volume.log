@@ -1,0 +1,40 @@
+I1118 09:29:55.469731 file_util.go:29 Folder /mnt/lima-colima/native-arm/vol Permission: -rwxr-xr-x
+I1118 09:29:55.472000 file_util.go:29 Folder /mnt/lima-colima/native-arm/vol Permission: -rwxr-xr-x
+I1118 09:38:05.771253 file_util.go:29 Folder /mnt/lima-colima/native-arm/vol Permission: -rwxr-xr-x
+I1118 09:38:05.773375 file_util.go:29 Folder /mnt/lima-colima/native-arm/vol Permission: -rwxr-xr-x
+I1118 09:39:09.087469 file_util.go:29 Folder /mnt/lima-colima/native-arm/vol Permission: -rwxr-xr-x
+I1118 09:39:09.087972 file_util.go:29 Folder /mnt/lima-colima/native-arm/vol Permission: -rwxr-xr-x
+I1118 10:24:57.770204 file_util.go:29 Folder /mnt/lima-colima/native-arm/vol Permission: -rwxr-xr-x
+I1118 10:24:57.772673 file_util.go:29 Folder /mnt/lima-colima/native-arm/vol Permission: -rwxr-xr-x
+I1118 10:28:23.698291 file_util.go:29 Folder /mnt/lima-colima/native-arm/vol Permission: -rwxr-xr-x
+I1118 10:28:23.699175 file_util.go:29 Folder /mnt/lima-colima/native-arm/vol Permission: -rwxr-xr-x
+I1118 10:33:25.140192 file_util.go:29 Folder /mnt/lima-colima/native-arm/vol Permission: -rwxr-xr-x
+I1118 10:33:25.141965 file_util.go:29 Folder /mnt/lima-colima/native-arm/vol Permission: -rwxr-xr-x
+I1118 10:33:25.173652 volume_grpc_client_to_master.go:154 Volume server start with seed master nodes: [127.0.0.1:19350]
+I1118 10:33:25.176036 grpc_client_server.go:171 gRPC also listening on Unix socket /tmp/seaweedfs-volume-grpc-29352.sock
+I1118 10:33:25.176151 volume.go:702 Start Seaweed volume server 30GB 4.54 5ef99c1d8 at 127.0.0.1:19352
+I1118 10:33:25.176879 volume_grpc_client_to_master.go:286 Heartbeat to: 127.0.0.1:19350
+I1118 10:33:28.002336 store.go:431 In dir /mnt/lima-colima/native-arm/vol (disk ID 0) adds volume:1 collection: replicaPlacement:000 ttl:
+I1118 10:33:28.007383 store.go:436 add volume 1 on disk ID 0
+I1118 10:33:28.007637 volume_grpc_client_to_master.go:437 volume server 127.0.0.1:19352 adds volume 1
+I1118 10:33:28.014026 store.go:431 In dir /mnt/lima-colima/native-arm/vol (disk ID 0) adds volume:2 collection: replicaPlacement:000 ttl:
+I1118 10:33:28.016008 store.go:436 add volume 2 on disk ID 0
+I1118 10:33:28.016087 volume_grpc_client_to_master.go:437 volume server 127.0.0.1:19352 adds volume 2
+I1118 10:33:28.020767 store.go:431 In dir /mnt/lima-colima/native-arm/vol (disk ID 0) adds volume:3 collection: replicaPlacement:000 ttl:
+I1118 10:33:28.024218 store.go:436 add volume 3 on disk ID 0
+I1118 10:33:28.024332 volume_grpc_client_to_master.go:437 volume server 127.0.0.1:19352 adds volume 3
+I1118 10:33:28.030219 store.go:431 In dir /mnt/lima-colima/native-arm/vol (disk ID 0) adds volume:4 collection: replicaPlacement:000 ttl:
+I1118 10:33:28.031952 store.go:436 add volume 4 on disk ID 0
+I1118 10:33:28.032024 volume_grpc_client_to_master.go:437 volume server 127.0.0.1:19352 adds volume 4
+I1118 10:33:28.039446 store.go:431 In dir /mnt/lima-colima/native-arm/vol (disk ID 0) adds volume:5 collection: replicaPlacement:000 ttl:
+I1118 10:33:28.042815 store.go:436 add volume 5 on disk ID 0
+I1118 10:33:28.042899 volume_grpc_client_to_master.go:437 volume server 127.0.0.1:19352 adds volume 5
+I1118 10:33:28.047027 store.go:431 In dir /mnt/lima-colima/native-arm/vol (disk ID 0) adds volume:6 collection: replicaPlacement:000 ttl:
+I1118 10:33:28.048592 store.go:436 add volume 6 on disk ID 0
+I1118 10:33:28.048672 volume_grpc_client_to_master.go:437 volume server 127.0.0.1:19352 adds volume 6
+I1118 10:33:28.052205 store.go:431 In dir /mnt/lima-colima/native-arm/vol (disk ID 0) adds volume:7 collection: replicaPlacement:000 ttl:
+I1118 10:33:28.053400 store.go:436 add volume 7 on disk ID 0
+I1118 10:33:28.053484 volume_grpc_client_to_master.go:437 volume server 127.0.0.1:19352 adds volume 7
+I1118 10:49:59.184465 volume.go:515 volume server has been killed
+I1118 10:49:59.184682 volume_server.go:202 Stopping volume server...
+I1118 10:49:59.193355 volume.go:520 stop send heartbeat and wait 10 seconds until shutdown ...

@@ -1,0 +1,3 @@
+date: 2026-11-17T23:48:11+00:00
+fio: fio-3.33
+mount: /mnt/ganesha-local (127.0.0.1:32049) size=10G fsync1=2G

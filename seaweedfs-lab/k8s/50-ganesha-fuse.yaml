@@ -1,0 +1,184 @@
+# Additional comparison arm: Ganesha and the SeaweedFS FUSE gateway share one
+# container, and therefore one mount namespace.  The host is the NFS client and
+# runs fio.  This requires a fixed MetalLB IP at 172.18.255.53 and the node's
+# /dev/fuse.  No Kubernetes mount-propagation support is needed: an earlier
+# two-container layout (FUSE sidecar + Bidirectional/HostToContainer
+# propagation) never received the submount on Kind, so the mount and the NFS
+# server were collapsed into a single image.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ganesha-fuse-config
+  namespace: seaweedfs
+data:
+  ganesha.conf: |
+    NFS_CORE_PARAM {
+        NFS_Port = 2049;
+        RPC_Ioq_ThrdMin = 8;
+        # 2x the vCPU count (8 vCPU -> 16); more threads only oversubscribe
+        # the CPU and pollute measurements (node load 36 on 4 vCPU).
+        RPC_Ioq_ThrdMax = 16;
+        RPC_Max_Connections = 1024;
+        MaxRPCSendBufferSize = 1048576;
+        MaxRPCRecvBufferSize = 1048576;
+        Enable_UDP = false;
+        Enable_TCP_keepalive = true;
+        Protocols = 4;
+        Enable_Metrics = false;
+        Enable_Dynamic_Metrics = false;
+    }
+
+    NFSv4 {
+        Lease_Lifetime = 10;
+        Grace_Period = 10;
+        minor_versions = 0,1;
+        Delegations = false;
+    }
+
+    NFS_KRB5 {
+        Active_krb5 = false;
+    }
+
+    DIRECTORY_SERVICES {
+        DomainName = localdomain;
+    }
+
+    EXPORT {
+        Export_Id = 1;
+        Path = "/mnt/seaweedfs";
+        Pseudo = "/seaweedfs";
+        Access_Type = RW;
+        Squash = Root_Squash;
+        Protocols = 4;
+        Transports = TCP;
+        SecType = sys;
+        MaxWrite = 1048576;
+        MaxRead = 1048576;
+        PrefWrite = 1048576;
+        PrefRead = 1048576;
+        PrefReaddir = 1048576;
+        FSAL {
+            Name = VFS;
+        }
+    }
+
+    EXPORT_DEFAULTS {
+        Access_Type = RW;
+        Squash = Root_Squash;
+        Protocols = 4;
+        Transports = TCP;
+        SecType = sys;
+    }
+
+    LOG {
+        Facility {
+            name = FILE;
+            destination = "/var/log/ganesha/ganesha.log";
+            enable = active;
+        }
+        Default_Log_Level = EVENT;
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: seaweedfs-ganesha-fuse
+  namespace: seaweedfs
+  labels:
+    app: seaweedfs-ganesha-fuse
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: seaweedfs-ganesha-fuse
+  template:
+    metadata:
+      labels:
+        app: seaweedfs-ganesha-fuse
+    spec:
+      terminationGracePeriodSeconds: 30
+      containers:
+        # The entrypoint mounts the FUSE export and then runs Ganesha against
+        # it; both live and die together (see k8s/ganesha-entrypoint.sh).
+        - name: ganesha-fuse
+          image: seaweedfs-lab:ganesha-v15.9
+          imagePullPolicy: Never
+          command:
+            - /usr/local/bin/ganesha-entrypoint
+          env:
+            - name: FILER
+              value: "172.18.255.52:19344"
+          securityContext:
+            privileged: true
+          ports:
+            - name: nfs
+              containerPort: 2049
+              protocol: TCP
+          volumeMounts:
+            - name: fuse-device
+              mountPath: /dev/fuse
+            - name: export-path
+              mountPath: /mnt/seaweedfs
+            - name: fuse-cache
+              mountPath: /cache
+            - name: fuse-logs
+              mountPath: /var/log
+            - name: ganesha-config
+              mountPath: /etc/ganesha
+              readOnly: true
+          readinessProbe:
+            # Same check as the entrypoint: the FUSE mount must be present.
+            # Ganesha follows within seconds; its liveness is covered by the
+            # entrypoint supervisor restarting the container if it exits.
+            exec:
+              command:
+                - /bin/bash
+                - -ec
+                - "awk '$2 == \"/mnt/seaweedfs\" && $3 == \"fuse.seaweedfs\" { found=1 } END { exit !found }' /proc/mounts"
+            periodSeconds: 5
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: "2"
+              memory: 2Gi
+            limits:
+              cpu: "8"
+              memory: 8Gi
+      volumes:
+        - name: fuse-device
+          hostPath:
+            path: /dev/fuse
+            type: CharDevice
+        - name: export-path
+          emptyDir: {}
+        - name: fuse-cache
+          emptyDir: {}
+        - name: fuse-logs
+          emptyDir: {}
+        - name: ganesha-config
+          configMap:
+            name: ganesha-fuse-config
+            items:
+              - key: ganesha.conf
+                path: ganesha.conf
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: seaweedfs-ganesha-fuse
+  namespace: seaweedfs
+  labels:
+    app: seaweedfs-ganesha-fuse
+spec:
+  type: LoadBalancer
+  # Reserve this address in the cluster's MetalLB pool before deploying.
+  loadBalancerIP: 172.18.255.53
+  selector:
+    app: seaweedfs-ganesha-fuse
+  ports:
+    - name: nfs
+      port: 2049
+      targetPort: 2049
+      protocol: TCP

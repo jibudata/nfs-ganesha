@@ -1,0 +1,236 @@
+# =====================================================================
+# Ganesha + the SeaweedFS FUSE gateway, in one container.
+#
+# The mount and the NFS server share one mount namespace on purpose.  An
+# earlier two-container layout (FUSE sidecar + Bidirectional propagation)
+# never received the submount on Kind, so the two halves were collapsed
+# into one image; see k8s/ganesha-entrypoint.sh and GANESHA-FUSE-POD.md.
+#
+# Both FUSE arms use the same node-IP hostPort endpoints:
+#
+#   filer  172.18.0.2:8888   (gRPC 18888)
+#   volume 172.18.0.2:8080   (returned by the filer for each chunk)
+#
+# The host and this pod reach the same addresses, so the SeaweedFS
+# backend is shared and the placement of Ganesha+FUSE is the only
+# variable in the host-vs-pod comparison.
+#
+# The Service is a NodePort for two reasons:
+#   * no MetalLB (or any load-balancer controller) is required; the
+#     cluster's node IP + 32049 is reachable from the host on Kind and
+#     k3s alike, and in-cluster clients can use the ClusterIP:2049;
+#   * it is not a SeaweedFS Service, so the gRPC-port rules for the
+#     SeaweedFS LoadBalancer Services do not apply to it.
+# =====================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ganesha-fuse-config
+  namespace: ganesha-seaweedfs
+data:
+  ganesha.conf: |
+    NFS_CORE_PARAM {
+        NFS_Port = 2049;
+        RPC_Ioq_ThrdMin = 8;
+        # The TIRPC ceiling, not a fixed thread count: the pool grows on
+        # demand (~91-95 I/O threads under the 24 GiB / 2-job load).
+        # 200 is the documented default and leaves headroom; the host
+        # arm uses the same value.
+        RPC_Ioq_ThrdMax = 200;
+        RPC_Max_Connections = 1024;
+        MaxRPCSendBufferSize = 1048576;
+        MaxRPCRecvBufferSize = 1048576;
+        Enable_UDP = false;
+        Enable_TCP_keepalive = true;
+        Protocols = 4;
+        Enable_Metrics = false;
+        Enable_Dynamic_Metrics = false;
+    }
+
+    NFSv4 {
+        Lease_Lifetime = 10;
+        Grace_Period = 10;
+        minor_versions = 0,1;
+        Delegations = false;
+    }
+
+    NFS_KRB5 {
+        Active_krb5 = false;
+    }
+
+    DIRECTORY_SERVICES {
+        DomainName = localdomain;
+    }
+
+    EXPORT {
+        Export_Id = 1;
+        Path = "/mnt/seaweedfs";
+        Pseudo = "/seaweedfs";
+        Access_Type = RW;
+        Squash = Root_Squash;
+        Protocols = 4;
+        Transports = TCP;
+        SecType = sys;
+        MaxWrite = 1048576;
+        MaxRead = 1048576;
+        PrefWrite = 1048576;
+        PrefRead = 1048576;
+        PrefReaddir = 1048576;
+        FSAL {
+            Name = VFS;
+        }
+    }
+
+    EXPORT_DEFAULTS {
+        Access_Type = RW;
+        Squash = Root_Squash;
+        Protocols = 4;
+        Transports = TCP;
+        SecType = sys;
+    }
+
+    LOG {
+        Facility {
+            name = FILE;
+            destination = "/var/log/ganesha/ganesha.log";
+            enable = active;
+        }
+        Default_Log_Level = EVENT;
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: seaweedfs-ganesha-fuse
+  namespace: ganesha-seaweedfs
+  labels:
+    app: seaweedfs-ganesha-fuse
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: seaweedfs-ganesha-fuse
+  template:
+    metadata:
+      labels:
+        app: seaweedfs-ganesha-fuse
+    spec:
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: ganesha-fuse
+          image: seaweedfs-lab:ganesha-v15.9
+          imagePullPolicy: Never
+          command:
+            - /usr/local/bin/ganesha-entrypoint
+          env:
+            - name: FILER
+              value: "172.18.0.2:8888"
+            # The export is Root_Squash, so the FUSE root (owned by root,
+            # mode 0755) is not writable by an NFS client.  The entrypoint
+            # creates this subdirectory and makes it world-writable after
+            # the mount is up; write tests into /data.  The FUSE root
+            # itself rejects setattr (EAGAIN), hence a fresh subdirectory.
+            - name: EXPORT_SUBDIR
+              value: "data"
+            - name: CONCURRENT_WRITERS
+              value: "64"
+            - name: CONCURRENT_READERS
+              value: "64"
+            # 8 MiB chunks reduce metadata/chunk ops for the 24 GiB case.
+            - name: CHUNK_SIZE_LIMIT_MB
+              value: "8"
+          securityContext:
+            # weed mount needs /dev/fuse and CAP_SYS_ADMIN.
+            privileged: true
+          ports:
+            - name: nfs
+              containerPort: 2049
+              protocol: TCP
+          volumeMounts:
+            - name: fuse-device
+              mountPath: /dev/fuse
+            - name: export-path
+              mountPath: /mnt/seaweedfs
+            - name: fuse-cache
+              mountPath: /cache
+            - name: fuse-logs
+              mountPath: /var/log
+            - name: ganesha-config
+              mountPath: /etc/ganesha
+              readOnly: true
+          readinessProbe:
+            # Ready means "actually serving": the FUSE mount exists AND
+            # Ganesha accepts on 2049.  A mount-only probe marks the pod
+            # Ready while Ganesha is still initialising, and the Service
+            # then hands NFS clients to a server that refuses them.
+            exec:
+              command:
+                - /bin/bash
+                - -ec
+                - |
+                  awk '$2 == "/mnt/seaweedfs" && $3 == "fuse.seaweedfs" { found=1 } END { exit !found }' /proc/mounts
+                  timeout 2 bash -c '</dev/tcp/127.0.0.1/2049'
+            initialDelaySeconds: 3
+            periodSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            # Ganesha is supervised by the entrypoint; this catches a
+            # server that is up but no longer answering NFS.
+            tcpSocket:
+              port: nfs
+            initialDelaySeconds: 15
+            periodSeconds: 15
+            failureThreshold: 4
+          # Pod limits removed for the host-vs-pod comparison: the host
+          # arm runs unrestricted, so the pod arm must not be throttled
+          # by a cgroup budget the host side does not have.
+          resources:
+            requests:
+              cpu: 500m
+              memory: 512Mi
+      volumes:
+        - name: fuse-device
+          hostPath:
+            path: /dev/fuse
+            type: CharDevice
+        # The mount point, the chunk cache and the logs are the FUSE
+        # layer's own state; the data itself is in the volume PVC.
+        - name: export-path
+          emptyDir: {}
+        # Memory-backed: the chunk cache otherwise writes every chunk to
+        # the node disk and then again to the volume .dat, which measured
+        # ~1.8x write amplification and saturated the disk at ~300 MiB/s.
+        # Bounded so a runaway cache cannot consume the node's memory.
+        - name: fuse-cache
+          emptyDir:
+            medium: Memory
+            sizeLimit: 512Mi
+        - name: fuse-logs
+          emptyDir: {}
+        - name: ganesha-config
+          configMap:
+            name: ganesha-fuse-config
+            items:
+              - key: ganesha.conf
+                path: ganesha.conf
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: seaweedfs-ganesha-fuse
+  namespace: ganesha-seaweedfs
+  labels:
+    app: seaweedfs-ganesha-fuse
+spec:
+  type: NodePort
+  selector:
+    app: seaweedfs-ganesha-fuse
+  ports:
+    - name: nfs
+      port: 2049
+      targetPort: nfs
+      # Fixed so a host-side mount command stays stable across redeploys.
+      nodePort: 32049
+      protocol: TCP
