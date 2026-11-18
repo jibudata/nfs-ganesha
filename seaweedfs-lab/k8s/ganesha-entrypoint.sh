@@ -22,6 +22,7 @@ CONF=${CONF:-/etc/ganesha/ganesha.conf}
 # every measurement; measure with the cap that matches the machine.
 CONCURRENT_WRITERS=${CONCURRENT_WRITERS:-16}
 CONCURRENT_READERS=${CONCURRENT_READERS:-16}
+CHUNK_SIZE_LIMIT_MB=${CHUNK_SIZE_LIMIT_MB:-2}
 # Optional: a world-writable directory to create inside the export after
 # the mount is up.  The export is Root_Squash and the FUSE root is owned
 # by root with mode 0755, so an NFS client's root cannot create a file at
@@ -50,7 +51,7 @@ ln -snf /proc/mounts /etc/mtab
   -cacheDir="$CACHE" \
   -cacheCapacityMB=128 \
   -cacheMetaTtlSec=60 \
-  -chunkSizeLimitMB=2 \
+  -chunkSizeLimitMB="$CHUNK_SIZE_LIMIT_MB" \
   -writeBufferSizeMB=4096 \
   -concurrentWriters="$CONCURRENT_WRITERS" \
   -concurrentReaders="$CONCURRENT_READERS" \

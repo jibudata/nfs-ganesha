@@ -113,3 +113,28 @@ K8s 臂从不踩这两个坑:master raft 在 PVC 里持久化、volume manifest 
 - >2GiB 持续写仍可楔死 mount→filer grpc(3 次,D 堆积),需 weed goroutine dump 定位;
 - ganesha/weedmount 任一重启后 NFS client 必须重挂(句柄过期,R10);
 - 原生臂启动脚本已含 growth.resume 修复,归档于 results/k8s-local/native-arm-finding/native-arm-setup.sh。
+
+## 十、16 vCPU / 24 GiB 持续写对照(独立复验,2026-11-18)
+
+在 16 vCPU 节点上以 size=12G × numjobs=2(24 GiB 持续写)对 Host 臂与 K8s 臂做了调参前后对照,与第八节 colima 的归因结论**全部同向互验**:
+
+| 配置 | Host | K8s | clat Host/K8s | 用时 |
+|---|---|---|---|---|
+| 基线 | 80.9 MiB/s | 82.4 MiB/s | 221/219 ms | 304/298 s |
+| 调参后 | 255.0 MiB/s | 254.0 MiB/s | 107/111 ms | 96/97 s |
+| 提升 | 3.15× | 3.08× | ~2× | ~3.1× |
+
+调参四项(colima 轮全部独立命中):
+1. `vm.dirty_bytes=2GiB / vm.dirty_background_bytes=512MiB`(R35 预防,colima 轮实测 +104%);
+2. 解除 master/volume/filer 的 CPU limits(仓库先例:解除后 +53%);
+3. IO 线程 2×vCPU:16 vCPU → 32(`CONCURRENT_WRITERS/READERS=32`、`RPC_Ioq_ThrdMax=32`,pod env + ConfigMap + Host 臂同步);
+4. `CHUNK_SIZE_LIMIT_MB=8`(entrypoint 已 env 化;24 GiB chunk 数 ~12,288→~3,072,落盘开销 27.5→24.6 GiB)。
+
+关键观察:
+- 基线瓶颈是持续写后端排队(clat ~220 ms 为证),非 fio 非 placement;
+- 调参后 255 MiB/s 已与 8-job 短突发(261)持平——buffered 写从"积压-节流"回到稳态;
+- **Host 与 K8s 差距缩至 0.4%**——瓶颈不再是 Ganesha/FUSE 位置,而是共享后端/磁盘;
+- 线程 128 反而退化到 244 MiB/s 且 dm-0 util 峰值 99.5%(本地盘打满);**64 为当前最优**,待补重复样本;
+- MaxWrite/PrefWrite=1MiB 保持(NFSv4.1 wsize 上限,不应盲目调大)。
+
+产物:/tmp/{baseline24g,tuned24g}-{host,pod}.log。entrypoint 的 `CHUNK_SIZE_LIMIT_MB` env 化已入码(默认 2 不变,CI 行为不变;16 vCPU 部署以 pod env 设 8)。
