@@ -1,0 +1,12 @@
+date: 2026-11-17T12:12:32+00:00
+fio: fio-3.33
+mount: /mnt/ganesha-local (127.0.0.1:32049)
+size: 10G; conc_size: 10G
+date: 2026-11-17T12:50:04+00:00
+fio: fio-3.33
+mount: /mnt/ganesha-local (127.0.0.1:32049)
+size: 10G; conc_size: 10G
+date: 2026-11-17T14:35:51+00:00
+fio: fio-3.33
+mount: /mnt/ganesha-local (127.0.0.1:32049)
+size: 10G; conc_size: 1280M

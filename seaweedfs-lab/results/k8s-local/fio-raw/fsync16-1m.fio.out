@@ -1,0 +1,31 @@
+fsync16-1m: (g=0): rw=write, bs=(R) 1024KiB-1024KiB, (W) 1024KiB-1024KiB, (T) 1024KiB-1024KiB, ioengine=libaio, iodepth=16
+fio-3.33
+Starting 1 process
+fsync16-1m: Laying out IO file (1 file / 10240MiB)
+
+fsync16-1m: (groupid=0, jobs=1): err= 0: pid=10191: Wed Nov 18 00:12:57 2026
+  write: IOPS=21, BW=21.9MiB/s (22.9MB/s)(10.0GiB/467915msec); 0 zone resets
+    slat (usec): min=565, max=232037, avg=45675.34, stdev=65768.41
+    clat (usec): min=6, max=2731.3k, avg=685417.54, stdev=658949.58
+     lat (usec): min=1417, max=2908.5k, avg=731092.89, stdev=691400.37
+    clat percentiles (msec):
+     |  1.00th=[   17],  5.00th=[   21], 10.00th=[   27], 20.00th=[   46],
+     | 30.00th=[  190], 40.00th=[  334], 50.00th=[  502], 60.00th=[  693],
+     | 70.00th=[  936], 80.00th=[ 1234], 90.00th=[ 1687], 95.00th=[ 2089],
+     | 99.00th=[ 2467], 99.50th=[ 2567], 99.90th=[ 2668], 99.95th=[ 2668],
+     | 99.99th=[ 2735]
+   bw (  KiB/s): min= 4047, max=677888, per=99.89%, avg=22386.31, stdev=35316.65, samples=934
+   iops        : min=    3, max=  662, avg=21.71, stdev=34.47, samples=934
+  lat (usec)   : 10=0.01%
+  lat (msec)   : 2=0.01%, 4=0.01%, 10=0.03%, 20=4.53%, 50=16.01%
+  lat (msec)   : 100=3.44%, 250=10.66%, 500=15.42%, 750=12.52%, 1000=9.74%
+  lat (msec)   : 2000=21.58%, >=2000=6.04%
+  cpu          : usr=0.26%, sys=4.49%, ctx=18467, majf=0, minf=25
+  IO depths    : 1=0.1%, 2=0.1%, 4=0.1%, 8=0.1%, 16=99.9%, 32=0.0%, >=64=0.0%
+     submit    : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.0%, 32=0.0%, 64=0.0%, >=64=0.0%
+     complete  : 0=0.0%, 4=100.0%, 8=0.0%, 16=0.1%, 32=0.0%, 64=0.0%, >=64=0.0%
+     issued rwts: total=0,10240,0,0 short=0,0,0,0 dropped=0,0,0,0
+     latency   : target=0, window=0, percentile=100.00%, depth=16
+
+Run status group 0 (all jobs):
+  WRITE: bw=21.9MiB/s (22.9MB/s), 21.9MiB/s-21.9MiB/s (22.9MB/s-22.9MB/s), io=10.0GiB (10.7GB), run=467915-467915msec
