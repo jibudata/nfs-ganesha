@@ -1,0 +1,6 @@
+name = "FSALSeaweedFormal"
+version = "0.3.3"
+defaultTargets = ["FSALSeaweedFormal"]
+
+[[lean_lib]]
+name = "FSALSeaweedFormal"
